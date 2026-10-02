@@ -1,8 +1,8 @@
 """Warm-started multi-candidate point projection onto a function set.
 
 A single Newton solve seeded from one patch is not reliable near patch
-boundaries: the closest location may lie on an edge, or on a neighbouring
-patch entirely. This module builds several candidate seeds per query point,
+boundaries or interior C0 knot lines: the closest location may lie on an
+edge, a crease, a crease crossing, or on a neighbouring patch entirely. This module builds several candidate seeds per query point,
 solves each, and ranks them: a converged candidate always outranks a
 non-converged one, and the closest converged candidate wins. When no candidate
 converges, the point is not dropped — the minimum-residual candidate is kept as
@@ -95,8 +95,8 @@ class WarmStartCandidateProjectionResult:
         Newton evidence for the accepted candidate.
     candidate_kind
         Which candidate type won for each point, for example a patch interior,
-        a named boundary edge, a fixed point on a degenerate edge, or a
-        neighbouring patch.
+        a named boundary edge, an interior C0 line or crossing, a fixed point
+        on a degenerate edge, or a neighbouring patch.
     warm_patch_id, warm_uv0
         The seed the winning solve started from.
     edge_map
@@ -588,6 +588,8 @@ def _build_candidate_specs(
     include_neighbor_patch: bool,
     include_neighbor_boundary: bool,
     near_edges: Optional[List[List[EdgeName]]] = None,
+    crease_knots: Optional[Dict[int, Tuple[np.ndarray, np.ndarray]]] = None,
+    span_knots: Optional[Dict[int, Tuple[np.ndarray, np.ndarray]]] = None,
 ) -> List[_CandidateSpec]:
     specs: List[_CandidateSpec] = []
 
@@ -607,6 +609,34 @@ def _build_candidate_specs(
             fixed_value=np.nan,
             kind="warm_start_patch",
         )
+
+        # A constrained minimum at an interior C0 line is not a root of
+        # the two-dimensional orthogonality equations. Search the lines
+        # bounding the seed span, and their crossings, explicitly. This is
+        # a local candidate search, not a global closest-point guarantee.
+        bounds = [[], []]
+        if crease_knots is not None and span_knots is not None:
+            for axis in (0, 1):
+                knots = span_knots[pid][axis]
+                span = np.clip(np.searchsorted(knots, uv_seed[axis], side="right") - 1,
+                               0, len(knots) - 2)
+                bounds[axis] = [k for k in knots[span:span + 2]
+                                if k in crease_knots[pid][axis]]
+                for knot in bounds[axis]:
+                    seed = uv_seed.copy()
+                    seed[axis] = knot
+                    _append_candidate_spec(
+                        specs, seen, point_index=point_index, candidate_patch=pid,
+                        candidate_uv=seed, fixed_axis=axis, fixed_value=knot,
+                        kind=f"current_{'uv'[axis]}_c0_line",
+                    )
+            for u in bounds[0]:
+                for v in bounds[1]:
+                    _append_candidate_spec(
+                        specs, seen, point_index=point_index, candidate_patch=pid,
+                        candidate_uv=np.array([u, v]), fixed_axis=POINT_CANDIDATE_AXIS,
+                        fixed_value=np.nan, kind="current_c0_corner_point",
+                    )
 
         if near_edges is not None:
             seed_edges = near_edges[point_index]
@@ -1245,9 +1275,21 @@ def project_points_with_warm_start_candidates_numpy(
             cell_factor=near_edge_cell_factor,
         )
 
+    crease_knots, span_knots = {}, {}
+    for pid in np.unique(warm.patch_id):
+        _, degrees, knot_vectors = _get_patch_metadata(function_set, int(pid))
+        unique_counts = [np.unique(k, return_counts=True) for k in knot_vectors]
+        span_knots[int(pid)] = tuple(k for k, _ in unique_counts)
+        crease_knots[int(pid)] = tuple(
+            k[(n >= degree) & (k > knots[degree]) & (k < knots[-degree - 1])]
+            for (k, n), degree, knots in zip(unique_counts, degrees, knot_vectors)
+        )
+
     specs = _build_candidate_specs(
         patch_id=warm.patch_id,
         uv0=warm.uv0,
+        crease_knots=crease_knots,
+        span_knots=span_knots,
         edge_map=edge_map,
         degenerate_edge_map=degenerate_edge_map,
         eps_edge=eps_edge,

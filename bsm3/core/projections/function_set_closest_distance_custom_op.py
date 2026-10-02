@@ -81,6 +81,8 @@ import csdl_alpha as csdl
 import numpy as np
 import pyvista as pv
 
+from bsm3.core.projections.surface_normals_numpy import _PatchNormals
+
 from lsdo_function_spaces.core.spaces.non_cython_bsplines.compute_basis_matrix_numpy_factory import (
     apply_basis_stencil_numpy,
     compute_basis_stencil_numpy,
@@ -192,15 +194,15 @@ def stack_function_set_coefficients(function_set, patch_ids: Optional[Iterable[i
 
 
 def _parse_fixed_axis(candidate_kind: str) -> Optional[int]:
-    if "u0_boundary" in candidate_kind or "u1_boundary" in candidate_kind:
+    if any(token in candidate_kind for token in ("u0_boundary", "u1_boundary", "u_c0_line")):
         return 0
-    if "v0_boundary" in candidate_kind or "v1_boundary" in candidate_kind:
+    if any(token in candidate_kind for token in ("v0_boundary", "v1_boundary", "v_c0_line")):
         return 1
     return None
 
 
 def _is_point_candidate(candidate_kind: str) -> bool:
-    return "degenerate_point" in candidate_kind
+    return "degenerate_point" in candidate_kind or "c0_corner" in candidate_kind
 
 
 def _normalize_vectors(vectors: np.ndarray, tol: float) -> np.ndarray:
@@ -985,84 +987,160 @@ class FunctionSetProjectionModel:
         selected_uv: np.ndarray,
         candidate_kind: Sequence[str],
         zero_distance_mask: np.ndarray,
+        *,
+        diagnostics: Optional[dict] = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        normals = np.zeros((points.shape[0], self.physical_dimension), dtype=float)
-        sign_score_all = np.zeros((points.shape[0],), dtype=float)
+        # Incident CAD face normals define a pseudonormal: equal weights at
+        # an edge, physical sector-angle weights at a corner. The projection
+        # must still identify the correct feature; this is not a global solid
+        # classifier or an alternative closest-point search.
+        patches = {pid: _PatchNormals(info, np.asarray(
+            stacked_coefficients[info.start:info.stop]).reshape(info.coefficient_shape))
+            for pid, info in self.patch_infos.items()}
+        normals = np.zeros_like(points)
+        ambiguous = np.zeros(len(points), dtype=bool)
+        collapsed = np.zeros((len(points), 2), dtype=bool)
+        support_count = np.zeros(len(points), dtype=int)
+        pole_mask = np.zeros(len(points), dtype=bool)
+        sign = np.ones(len(points))
+        regular_normals = np.zeros_like(points)
+        regular_sine = np.zeros(len(points))
+        regular_cosine = np.zeros(len(points))
+        regular_valid = np.zeros(len(points), dtype=bool)
+        for pid, patch in patches.items():
+            rows = np.flatnonzero(selected_patch_id == pid)
+            if len(rows):
+                frame = patch.frames(selected_uv[rows])
+                regular_normals[rows], regular_sine[rows], regular_cosine[rows], regular_valid[rows] = frame
 
-        for patch_id in self.patch_ids:
-            point_indices = np.where(selected_patch_id == int(patch_id))[0]
-            if point_indices.size == 0:
+        def boundary_sides(uv):
+            sides = {}
+            for axis in (0, 1):
+                if uv[axis] <= self.sdf_normal_edge_tolerance:
+                    sides[axis] = 1
+                elif uv[axis] >= 1-self.sdf_normal_edge_tolerance:
+                    sides[axis] = -1
+            return sides
+
+        def edge_face(pid, edge, uv, point, visited):
+            # Walk across a collapsed interval touching an edge until its
+            # incident regular face is found. Detect missing joins/cycles.
+            key = (pid, edge)
+            if key in visited:
+                return None
+            visited = visited | {key}
+            neighbor = self.edge_map.get(key)
+            if neighbor is None or neighbor.neighbor_patch not in patches:
+                return None
+            mapped = _map_uv_across_edge(uv, edge, neighbor.neighbor_edge,
+                                        neighbor.reverse_along_edge)
+            pid = int(neighbor.neighbor_patch)
+            patch = patches[pid]
+            axis = 0 if neighbor.neighbor_edge[0] == 'u' else 1
+            direction = 1 if neighbor.neighbor_edge[1] == '0' else -1
+            interval = patch.interval(mapped, axis)
+            boundary = mapped[axis]
+            if interval is not None:
+                boundary = interval[1] if direction > 0 else interval[0]
+                mapped = mapped.copy(); mapped[axis] = boundary
+                if boundary in (0., 1.):
+                    return edge_face(pid, 'uv'[axis]+str(int(boundary)), mapped, point, visited)
+            sides = boundary_sides(mapped); sides[axis] = direction
+            return patch.limit(mapped, axis, boundary, direction, point, sides.items())
+
+        for i, (pid, uv, kind) in enumerate(zip(selected_patch_id, selected_uv, candidate_kind)):
+            pid = int(pid); patch = patches[pid]; point = projected_points[i]
+            pole = patch.pole(uv)
+            if pole is not None:
+                pole_mask[i] = True
+                pole_point = patch.poles[pole]
+                incident = []
+                # Multiple patches may describe sectors of the same CAD pole.
+                # Match exact geometry, not the seed mesh or an arbitrary UV.
+                for neighbor in patches.values():
+                    for key, location in neighbor.poles.items():
+                        if np.array_equal(location, pole_point):
+                            value = neighbor.pole_normal(*key)
+                            if value is None:
+                                raise ValueError("Cannot resolve the CAD normal fan at "
+                                                 f"pole on patch {pid}, point {i}.")
+                            incident.append(value)
+                combined = sum(vector for vector, _ in incident)
+                total = sum(weight for _, weight in incident)
+                magnitude = np.linalg.norm(combined)
+                if magnitude <= 256*np.finfo(float).eps*total:
+                    raise ValueError(f"Cancelling CAD pole normals on patch {pid}, point {i}.")
+                normals[i] = combined/magnitude
+                support_count[i] = len(incident)
+                # The circumferential coordinate is not unique at a pole.
+                collapsed[i, 1-pole[0]] = True
+                score = np.dot(point-points[i], normals[i])
+                if abs(score) <= 64*np.finfo(float).eps*np.linalg.norm(point-points[i]) and not zero_distance_mask[i]:
+                    raise ValueError(f"Unresolved CAD pole sign on patch {pid}, point {i}.")
+                sign[i] = -1. if score < 0 else 1.
                 continue
+            intervals = [patch.interval(uv, axis) for axis in (0, 1)]
+            collapsed[i] = [interval is not None for interval in intervals]
+            faces = []; complete = True
+            if np.any(collapsed[i]):
+                if np.all(collapsed[i]):
+                    complete = False
+                else:
+                    axis = int(np.flatnonzero(collapsed[i])[0])
+                    for boundary, side in zip(intervals[axis], (-1, 1)):
+                        edge_uv = uv.copy(); edge_uv[axis] = boundary
+                        if boundary in (0., 1.):
+                            face = edge_face(pid, 'uv'[axis]+str(int(boundary)), edge_uv, point, set())
+                        else:
+                            sides = boundary_sides(uv); sides[axis] = side
+                            face = patch.limit(uv, axis, boundary, side, point, sides.items())
+                        if face is None:
+                            complete = False
+                        else:
+                            faces.append(face)
+            elif 'c0_line' in kind or 'c0_corner' in kind:
+                axes = (0, 1) if 'c0_corner' in kind else (_parse_fixed_axis(kind),)
+                for combination in range(2**len(axes)):
+                    evaluation = uv.copy(); sides = boundary_sides(uv)
+                    for bit, axis in enumerate(axes):
+                        side = 1 if combination & (1 << bit) else -1
+                        sides[axis] = side
+                        evaluation[axis] = np.nextafter(uv[axis], np.inf*side)
+                    face = patch.normal(evaluation, sides.items())
+                    if face is not None:
+                        faces.append(face)
+            elif regular_valid[i]:
+                sides = boundary_sides(uv)
+                weight = np.pi
+                if len(sides) == 2:
+                    weight = np.arctan2(regular_sine[i], regular_cosine[i]*sides[0]*sides[1])
+                faces.append((regular_normals[i], weight))
 
-            info = self.patch_infos[int(patch_id)]
-            coeffs = np.asarray(
-                stacked_coefficients[info.start:info.stop],
-                dtype=float,
-            ).reshape(info.coefficient_shape)
-            uv = selected_uv[point_indices]
-            normal_sum = self._compute_patch_normals(info, coeffs, uv)
-            normal_count = np.ones((point_indices.size,), dtype=float)
-            sign_score = np.einsum(
-                "ij,ij->i",
-                projected_points[point_indices] - points[point_indices],
-                normal_sum,
-            )
-
-            for local_index, point_index in enumerate(point_indices):
-                edges = self._candidate_edges_for_normal_sign(
-                    candidate_kind[point_index],
-                    selected_uv[point_index],
-                )
-                for edge in edges:
-                    neighbor = self.edge_map.get((int(patch_id), edge))
-                    if neighbor is None:
+            # Retain CAD adjacency across ordinary patch boundaries as well.
+            for edge in self._candidate_edges_for_normal_sign(kind, uv):
+                axis = 0 if edge[0] == 'u' else 1
+                if collapsed[i, axis]:
+                    continue  # This side was already recovered above.
+                face = edge_face(pid, edge, uv, point, set())
+                if face is not None:
+                    faces.append(face)
+            support_count[i] = len(faces)
+            if faces and complete:
+                combined = sum(weight*n for n, weight in faces)
+                length = np.linalg.norm(combined)
+                if length > 256*np.finfo(float).eps*sum(weight for _, weight in faces):
+                    normals[i] = combined/length
+                    score = np.dot(point-points[i], normals[i])
+                    score_noise = 64*np.finfo(float).eps*np.linalg.norm(point-points[i])
+                    if abs(score) > score_noise or zero_distance_mask[i]:
+                        sign[i] = -1. if score < 0 else 1.
                         continue
-
-                    neighbor_info = self.patch_infos.get(int(neighbor.neighbor_patch))
-                    if neighbor_info is None:
-                        continue
-
-                    neighbor_coeffs = np.asarray(
-                        stacked_coefficients[neighbor_info.start:neighbor_info.stop],
-                        dtype=float,
-                    ).reshape(neighbor_info.coefficient_shape)
-                    neighbor_uv = _map_uv_across_edge(
-                        uv=selected_uv[point_index],
-                        from_edge=edge,
-                        to_edge=neighbor.neighbor_edge,
-                        reverse_along_edge=neighbor.reverse_along_edge,
-                    ).reshape(1, 2)
-                    neighbor_normal = self._compute_patch_normals(
-                        neighbor_info,
-                        neighbor_coeffs,
-                        neighbor_uv,
-                    )[0]
-                    if np.linalg.norm(neighbor_normal) > self.degenerate_normal_tol:
-                        normal_sum[local_index] += neighbor_normal
-                        normal_count[local_index] += 1.0
-                        neighbor_score = float(
-                            np.dot(
-                                projected_points[point_index] - points[point_index],
-                                neighbor_normal,
-                            )
-                        )
-                        sign_score[local_index] = max(sign_score[local_index], neighbor_score)
-
-            averaged_normals = normal_sum / normal_count[:, None]
-            normalized = _normalize_vectors(averaged_normals, self.degenerate_normal_tol)
-            fallback = np.linalg.norm(normalized, axis=1) <= self.degenerate_normal_tol
-            if np.any(fallback):
-                normalized[fallback] = self._compute_patch_normals(
-                    info,
-                    coeffs,
-                    uv[fallback],
-                )
-            normals[point_indices] = normalized
-            sign_score_all[point_indices] = sign_score
-
-        sign = np.where((sign_score_all < 0.0) & ~zero_distance_mask, -1.0, 1.0)
-        inside_mask = sign < 0.0
-        return sign, inside_mask, normals
+            ambiguous[i] = True
+            sign[i] = np.nan
+        if diagnostics is not None:
+            diagnostics.update(sign_ambiguous=ambiguous, collapsed_parametric_axes=collapsed,
+                               normal_support_count=support_count, pole_normal_recovered=pole_mask)
+        return sign, sign < 0, normals
 
     def _compute_oriented_surface_normals(
         self,
@@ -1194,7 +1272,16 @@ class FunctionSetProjectionModel:
         Points whose Newton solve did not converge are still returned rather than
         raising. Use ``state["converged"]`` to decide whether a point solved;
         ``state["residual"]`` and ``state["iterations"]`` describe how the solve
-        behaved. Derivatives are not supported where ``converged`` is ``False``.
+        behaved. Normal-mode ``sign_ambiguous`` is independent of Newton
+        convergence: unavailable incident faces or a cancelling pseudonormal
+        produce a NaN signed output (unsigned ``distance`` remains available).
+        ``collapsed_parametric_axes`` records structurally non-unique UV labels.
+        Clamped CAD poles use the integrated analytic incident-normal fan,
+        recorded by ``pole_normal_recovered``. Unresolvable pole geometry
+        raises ValueError rather than feeding a NaN signed residual to callers.
+        Pole circumferential UV labels are nonunique; their derivatives have no
+        geometric meaning. Derivatives are not supported where convergence or
+        sign is unresolved.
         """
         stacked_coefficients = np.asarray(stacked_coefficients, dtype=float)
         points = np.asarray(points, dtype=float).reshape(-1, self.physical_dimension)
@@ -1229,6 +1316,7 @@ class FunctionSetProjectionModel:
         sign = np.ones_like(raw_distance)
         inside_mask = np.zeros_like(zero_distance_mask)
         reference_normals = np.zeros((points.shape[0], self.physical_dimension), dtype=float)
+        normal_diagnostics = {}
         if self.sdf:
             if self.sdf_sign_mode == "normal":
                 sign, inside_mask, reference_normals = self._compute_normal_sign_metadata(
@@ -1239,6 +1327,7 @@ class FunctionSetProjectionModel:
                     np.asarray(result.uv, dtype=float),
                     result.candidate_kind,
                     zero_distance_mask,
+                    diagnostics=normal_diagnostics,
                 )
             else:
                 sign, inside_mask, reference_normals = self._compute_sdf_metadata(
@@ -1290,6 +1379,7 @@ class FunctionSetProjectionModel:
             "residual": np.asarray(result.residual, dtype=float),
             "degenerate_edge_map": degenerate_edge_map,
         }
+        state.update(normal_diagnostics)
         return output_measure, state
 
     def compute_vjp(
