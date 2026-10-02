@@ -16,7 +16,7 @@ def test_inputs_are_the_approved_bytes():
     for path in (example.STEP_FILE, example.MESH_FILE):
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == (
-            example.ASSET_HASHES[path.name]
+            support.ASSET_HASHES[path.name]
         )
 
 

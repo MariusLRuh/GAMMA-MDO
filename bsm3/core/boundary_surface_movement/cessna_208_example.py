@@ -3,8 +3,14 @@
 This module supports the example script and is not a public GAMMA API.
 """
 
+import hashlib
 import json
+import os
+import time
 import warnings
+from contextlib import contextmanager
+from dataclasses import dataclass
+from pathlib import Path
 
 import csdl_alpha as csdl
 import numpy as np
@@ -14,8 +20,13 @@ from bsm3.core.boundary_surface_movement import stack_component_coefficients_num
 from bsm3.core.projections.function_set_closest_distance_custom_op import (
     FunctionSetProjectionModel,
 )
-from bsm3.preprocessing import get_projection_metadata
+from bsm3.preprocessing import create_components, get_projection_metadata
 
+
+ASSET_HASHES = {
+    "cessna208_no_elevator_3.stp": "c22fd7d08f369abf10297dc9ce53727d06c6b771779bd622014723c0831106b9",
+    "cessna208_3_recombine_new.msh": "321b493a18ba0016274c0797a8754613388f09ade58beef0014480a92c1cbeb8",
+}
 
 def _section_area_centroid(function, row_index):
     """Calculate a C208 strut end-section centroid from its CAD spline."""
@@ -223,3 +234,152 @@ def _sensitivity_report(result, controls, load_steps, vertex_ids):
         "x_coordinate_gradients": gradients,
     }
 
+
+
+@dataclass(frozen=True)
+class _PreparedCase:
+    """Verified C208 inputs and baseline geometry for one run."""
+
+    components: tuple
+    strut_baseline: np.ndarray
+    fuselage_centroid: np.ndarray
+    wing_centroid: np.ndarray
+    wing_span: float
+    fuselage_nose_x: float
+    fuselage_length: float
+    wing_fraction: float
+    fuselage_fraction: float
+    output_directory: Path
+    cache_directory: Path
+    stem: str
+    settings: dict
+    recorder: object
+    started_at: float
+
+
+@contextmanager
+def _prepare_case(*, step_file, mesh_file, output_directory, settings,
+                  connection_drivers):
+    """Verify assets, start CSDL, and measure the baseline attachments."""
+    _validate_load_steps(settings["load_steps"])
+    if settings["ngon_regularization_weight"] <= 0.0:
+        raise ValueError(
+            "The C208 mixed-cell example requires positive n-gon regularization."
+        )
+    for asset in (step_file, mesh_file):
+        if not asset.is_file():
+            raise FileNotFoundError(asset)
+        if hashlib.sha256(asset.read_bytes()).hexdigest() != ASSET_HASHES[asset.name]:
+            raise ValueError(f"C208 input asset changed: {asset.name}")
+    connections = settings["additional_connections"]
+    if len(set(connections)) != len(connections):
+        raise ValueError("Additional connection names must be unique.")
+    if unknown := set(connections) - connection_drivers.keys():
+        raise ValueError(f"Unknown additional connections: {sorted(unknown)}")
+
+    settings_hash = hashlib.sha256(
+        json.dumps(settings, sort_keys=True).encode("utf-8")
+    ).hexdigest()[:10]
+    stem = (
+        f"cessna_208_w{settings['wing_attachment_delta_fraction']:+.3f}"
+        f"_f{settings['fuselage_attachment_delta_fraction']:+.3f}"
+        f"_s{settings['load_steps']}_{settings_hash}"
+    )
+    output_directory.mkdir(parents=True, exist_ok=True)
+    cache = output_directory / "cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    recorder = csdl.Recorder(inline=True)
+    recorder.start()
+    started = time.monotonic()
+    try:
+        previous_dir = Path.cwd()
+        try:
+            os.chdir(cache)
+            components = create_components(
+                search_names=["Struts", "MainWing", "FuselageGeom", "Stab"],
+                step_file=step_file,
+            )
+        finally:
+            os.chdir(previous_dir)
+        struts, wing, fuselage, _ = components
+        if sorted(struts.functions) != [4, 5]:
+            raise ValueError("C208 strut patch keys changed.")
+        baseline = np.asarray(struts.functions[4].coefficients.value).copy()
+        port_baseline = np.asarray(struts.functions[5].coefficients.value)
+        if not np.array_equal(
+            baseline[:, ::-1, :] * np.array([1.0, -1.0, 1.0]), port_baseline
+        ):
+            raise ValueError("C208 strut patches are not exactly mirrored.")
+        gf = _section_area_centroid(struts.functions[4], 0)
+        gw = _section_area_centroid(struts.functions[4], 1)
+        span = _wing_full_span(wing)
+        fuselage_x = np.asarray(fuselage.functions[6].coefficients.value)[..., 0]
+        nose_x = float(fuselage_x.min())
+        fuselage_length = float(fuselage_x.max() - nose_x)
+        yield _PreparedCase(
+            components=components,
+            strut_baseline=baseline,
+            fuselage_centroid=gf,
+            wing_centroid=gw,
+            wing_span=span,
+            fuselage_nose_x=nose_x,
+            fuselage_length=fuselage_length,
+            wing_fraction=float(gw[1] / span),
+            fuselage_fraction=float((gf[0] - nose_x) / fuselage_length),
+            output_directory=output_directory,
+            cache_directory=cache,
+            stem=stem,
+            settings=settings,
+            recorder=recorder,
+            started_at=started,
+        )
+    finally:
+        recorder.stop()
+
+
+def _finish_case(case, result, *, controls, sensitivity_vertex_ids):
+    """Validate final seams and save the same C208 report as the driver."""
+    seam_summary = _seam_residual_summary(result, case.components)
+    _check_final_seams(
+        seam_summary,
+        failure_file=case.output_directory / f"{case.stem}.invalid.json",
+    )
+    sensitivity = _sensitivity_report(
+        result, controls, case.settings["load_steps"], sensitivity_vertex_ids,
+    )
+    report = {
+        "intersections_valid": True,
+        "sensitivity": sensitivity,
+        "settings": case.settings,
+        "final_seams": seam_summary,
+        "elapsed_seconds": time.monotonic() - case.started_at,
+        "baseline_fractions": [case.wing_fraction, case.fuselage_fraction],
+        "wing_full_span_m": case.wing_span,
+        "fuselage_length_m": case.fuselage_length,
+        "fuselage_section_centroid_m": case.fuselage_centroid.tolist(),
+        "wing_section_centroid_m": case.wing_centroid.tolist(),
+        "surface_cell_counts": {
+            kind: int(len(cells))
+            for kind, cells in result.surface_mesh.cell_blocks.items()
+        },
+        "surface_vertices": len(result.initial_surface_coordinates),
+        "folds": result.surface_fold_count,
+        "inverted": result.surface_inversion_report.num_inverted,
+        "degenerate": result.surface_quality_report.degenerate_elements,
+        "min_scaled_jacobian": result.surface_quality_report.minimum_scaled_jacobian,
+        "projection_failures": result.surface_projection_status.num_nonconverged,
+        "max_coordinate_change_m": float(np.max(abs(
+            result.surface_coordinates.value - result.initial_surface_coordinates
+        ))),
+        "graph_free_vertices": int(
+            result.surface_vertex_classification.graph_free_vertex_ids.size
+        ),
+        "parametrically_prescribed_vertices": int(
+            result.surface_vertex_classification.parametrically_prescribed_vertex_ids.size
+        ),
+    }
+    (case.output_directory / f"{case.stem}.json").write_text(
+        json.dumps(report, indent=2) + "\n"
+    )
+    print(json.dumps(report, indent=2), flush=True)
+    return report
