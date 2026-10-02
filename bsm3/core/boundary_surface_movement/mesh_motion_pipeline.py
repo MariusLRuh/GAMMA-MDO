@@ -1090,7 +1090,14 @@ def _reproject_and_reevaluate(
     for spec in geometry._component_records:
         component = setup.components[spec.name]
         vertex_ids = system.projection_ids[spec.name]
-        if spec.projection_mode == "lifting_surface":
+        if spec.projection_metadata_builder is not None:
+            projection_metadata.extend(spec.projection_metadata_builder(
+                component=component,
+                vertex_ids=vertex_ids,
+                initial_parametric_coordinates=setup.initial_parametric_coordinates,
+                initial_vertices=setup.initial_vertices,
+            ))
+        elif spec.projection_mode == "lifting_surface":
             parent_coordinates = setup.initial_parametric_coordinates.copy()
             for data in setup.intersections.values():
                 if data.spec.driving_component == spec.name:

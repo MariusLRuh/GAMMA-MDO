@@ -10,9 +10,10 @@ contract is::
         -> BSM3 intersections, graph motion, reprojection, diagnostics
 
 Another package may own every design variable and every deformation operation.
-It does not subclass BSM3, supply private callbacks, or call
+It need not subclass BSM3 or call
 :meth:`GeometryModel.design_variable`. What it hands over is the deformed
-coefficients themselves.
+coefficients themselves. A component may additionally supply an optional
+setup-time projection metadata builder.
 
 The generic path
 ----------------
@@ -396,6 +397,7 @@ class GeometryModel:
         free_region: Mapping[str, Any] | None = None,
         projection_name: str | None = None,
         projection_mode: str = "all",
+        projection_metadata_builder=None,
     ) -> None:
         """Add a component driven by externally produced coefficients.
 
@@ -424,6 +426,12 @@ class GeometryModel:
             Diagnostic projection name; defaults to ``name``.
         projection_mode
             ``"all"`` or ``"lifting_surface"``.
+        projection_metadata_builder
+            Optional setup-time callback for a component-specific projection
+            strategy. It receives the imported component, candidate vertex IDs,
+            baseline parametric coordinates and baseline mesh vertices, and
+            returns projection metadata groups. The returned groups are checked
+            by the projection routine against the actual reprojected IDs.
 
         Raises
         ------
@@ -455,6 +463,7 @@ class GeometryModel:
                 ),
                 projection_name=projection_name,
                 projection_mode=projection_mode,
+                projection_metadata_builder=projection_metadata_builder,
             )
         )
 

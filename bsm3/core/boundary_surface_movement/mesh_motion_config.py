@@ -614,6 +614,8 @@ class _ComponentRecord:
     projection_mode
         ``"lifting_surface"`` uses the configured patch-side restriction;
         ``"all"`` projects against every patch on the component.
+    projection_metadata_builder
+        Optional callable defining component-specific projection groups.
     """
 
     name: str
@@ -622,6 +624,7 @@ class _ComponentRecord:
     free_region_factory: Callable[[Any], Any]
     projection_name: str | None = None
     projection_mode: str = "all"
+    projection_metadata_builder: Callable[..., Any] | None = None
 
     def __post_init__(self):
         if not self.name or not self.name.isidentifier():
@@ -632,6 +635,10 @@ class _ComponentRecord:
             raise ValueError(
                 "_ComponentRecord.projection_mode must be lifting_surface or all."
             )
+        if self.projection_metadata_builder is not None and not callable(
+            self.projection_metadata_builder
+        ):
+            raise ValueError("projection_metadata_builder must be callable.")
         if self.projection_name is None:
             object.__setattr__(self, "projection_name", self.name)
 

@@ -20,6 +20,9 @@ class ProjectionMetadata:
     ``None``, projection may select any patch in ``allowed_patch_ids``.
     Finite entries in ``fixed_parametric_coordinates`` preserve a parent-patch
     boundary coordinate while allowing the other coordinate to slide.
+    ``chordwise_reference`` and ``chordwise_restore_weight`` blend the
+    projected second parametric coordinate with a fixed baseline value; the
+    latter must lie in [0, 1].
     """
 
     component: object
@@ -27,6 +30,8 @@ class ProjectionMetadata:
     allowed_patch_ids: tuple[int, ...]
     parent_patch_ids: np.ndarray | None = None
     fixed_parametric_coordinates: np.ndarray | None = None
+    chordwise_reference: np.ndarray | None = None
+    chordwise_restore_weight: np.ndarray | None = None
     name: str | None = None
 
 
@@ -212,12 +217,17 @@ def get_projection_metadata(
     allowed_patch_ids: Sequence[int] | None = None,
     fix_patch_boundaries: bool = False,
     patch_boundary_tolerance: float = 1e-6,
+    chordwise_reference: np.ndarray | None = None,
+    chordwise_restore_weight: np.ndarray | None = None,
 ) -> ProjectionMetadata:
     """Build component/patch restrictions for differentiable projection.
 
     ``allowed_patch_ids`` narrows projection to a subset of the component's
     patches (e.g. one surface side); combined with ``para_coords=None`` this
     lets a node slide between those patches but never leave the subset.
+    When supplied together, ``chordwise_reference`` and
+    ``chordwise_restore_weight`` restore a constant fraction of each vertex's
+    baseline second parametric coordinate after projection.
     """
     del vertices, mesh  # Included for a readable call site and future checks.
     ids = np.asarray(vertex_ids, dtype=np.int64).reshape(-1)
@@ -257,12 +267,28 @@ def get_projection_metadata(
                 )
     elif fix_patch_boundaries:
         raise ValueError("fix_patch_boundaries requires para_coords.")
+    if (chordwise_reference is None) != (chordwise_restore_weight is None):
+        raise ValueError("Chordwise reference and restore weight must be supplied together.")
+    if chordwise_reference is not None:
+        if parent_patch_ids is None:
+            raise ValueError("Chordwise restoration requires parent parametric coordinates.")
+        chordwise_reference = np.asarray(chordwise_reference, dtype=float).reshape(-1)
+        chordwise_restore_weight = np.asarray(chordwise_restore_weight, dtype=float).reshape(-1)
+        if chordwise_reference.size != ids.size or chordwise_restore_weight.size != ids.size:
+            raise ValueError("Chordwise restoration arrays must align with vertex_ids.")
+        if (not np.all(np.isfinite(chordwise_reference)) or
+                not np.all(np.isfinite(chordwise_restore_weight)) or
+                np.any(chordwise_restore_weight < 0.0) or
+                np.any(chordwise_restore_weight > 1.0)):
+            raise ValueError("Chordwise restoration values must be finite; weights must be in [0, 1].")
     return ProjectionMetadata(
         component=component,
         vertex_ids=ids,
         allowed_patch_ids=allowed_patch_ids,
         parent_patch_ids=parent_patch_ids,
         fixed_parametric_coordinates=fixed_parametric_coordinates,
+        chordwise_reference=chordwise_reference,
+        chordwise_restore_weight=chordwise_restore_weight,
         name=name,
     )
 

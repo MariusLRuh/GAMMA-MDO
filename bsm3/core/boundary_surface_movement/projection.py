@@ -199,6 +199,23 @@ def project_onto_oml(
                     [fixed_by_id[int(vertex_id)] for vertex_id in selected_global_ids],
                     dtype=float,
                 )
+            chordwise_reference = None
+            chordwise_weight = None
+            if metadata.chordwise_reference is not None:
+                reference_by_id = dict(zip(
+                    metadata.vertex_ids, metadata.chordwise_reference
+                ))
+                weight_by_id = dict(zip(
+                    metadata.vertex_ids, metadata.chordwise_restore_weight
+                ))
+                chordwise_reference = np.asarray(
+                    [reference_by_id[int(vertex_id)] for vertex_id in selected_global_ids],
+                    dtype=float,
+                )
+                chordwise_weight = np.asarray(
+                    [weight_by_id[int(vertex_id)] for vertex_id in selected_global_ids],
+                    dtype=float,
+                )
             for patch_id in np.unique(parent_patches):
                 group_local = np.where(parent_patches == patch_id)[0]
                 output_rows = local_rows[group_local]
@@ -208,7 +225,7 @@ def project_onto_oml(
                     coefficients,
                     (int(patch_id),),
                 )
-                if fixed_coordinates is None:
+                if fixed_coordinates is None and chordwise_reference is None:
                     projected_points, group_converged = _project_group(
                         component,
                         patch_coefficients,
@@ -225,14 +242,23 @@ def project_onto_oml(
                         projection_options=projection_options,
                         return_parametric=True,
                     )
-                    group_fixed = fixed_coordinates[group_local]
-                    for axis in (0, 1):
-                        fixed_rows = np.where(np.isfinite(group_fixed[:, axis]))[0]
-                        if fixed_rows.size:
-                            projected_coordinates = projected_coordinates.set(
-                                _coordinate_slice(fixed_rows, axis + 1),
-                                group_fixed[fixed_rows, axis].reshape((-1, 1)),
-                            )
+                    if fixed_coordinates is not None:
+                        group_fixed = fixed_coordinates[group_local]
+                        for axis in (0, 1):
+                            fixed_rows = np.where(np.isfinite(group_fixed[:, axis]))[0]
+                            if fixed_rows.size:
+                                projected_coordinates = projected_coordinates.set(
+                                    _coordinate_slice(fixed_rows, axis + 1),
+                                    group_fixed[fixed_rows, axis].reshape((-1, 1)),
+                                )
+                    if chordwise_reference is not None:
+                        weight = chordwise_weight[group_local].reshape((-1, 1))
+                        reference = chordwise_reference[group_local].reshape((-1, 1))
+                        projected_v = projected_coordinates[csdl.slice[:, 2:3]]
+                        restored_v = projected_v * (1.0 - weight) + weight * reference
+                        projected_coordinates = projected_coordinates.set(
+                            csdl.slice[:, 2:3], restored_v
+                        )
                     projected_points = FunctionSetEvaluationOperation(
                         FunctionSetEvaluationModel(component)
                     ).evaluate(coefficients, projected_coordinates)
@@ -396,11 +422,20 @@ def _coefficient_subset(component, coefficients, selected_patch_ids):
         shape = component.functions[patch_id].coefficients.shape
         count = int(np.prod(shape[:-1]))
         if patch_id in selected:
-            blocks.append(coefficients[csdl.slice[offset : offset + count, :]])
+            row_slice = (
+                slice(offset, offset + count)
+                if isinstance(coefficients, np.ndarray)
+                else csdl.slice[offset : offset + count, :]
+            )
+            blocks.append(coefficients[row_slice])
         offset += count
     if not blocks:
         raise ValueError("No selected patch coefficients.")
-    return blocks[0] if len(blocks) == 1 else csdl.vstack(tuple(blocks))
+    if len(blocks) == 1:
+        return blocks[0]
+    if isinstance(coefficients, np.ndarray):
+        return np.vstack(blocks)
+    return csdl.vstack(tuple(blocks))
 
 
 def _component_mapping_get(mapping, component, default):
