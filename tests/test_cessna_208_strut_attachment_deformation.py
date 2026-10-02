@@ -13,10 +13,10 @@ from bsm3.core.boundary_surface_movement import cessna_208_example as support
 
 def test_inputs_are_the_approved_bytes():
     """Pin the two user-approved C208 inputs shipped with the example."""
-    for path in (support.STEP_FILE, support.MESH_FILE):
+    for path in (example.STEP_FILE, example.MESH_FILE):
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == (
-            support.ASSET_HASHES[path.name]
+            example.ASSET_HASHES[path.name]
         )
 
 
