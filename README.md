@@ -66,6 +66,22 @@ do not create, start, or stop it.
 A complete, runnable example is tracked at
 [`examples/e175_surface_deformation.py`](examples/e175_surface_deformation.py).
 
+A second example moves both Cessna 208 strut attachments on a mixed
+triangle/quad mesh:
+
+```bash
+python examples/cessna_208_strut_attachment_deformation.py
+```
+
+The STEP and mesh inputs ship with GAMMA. Edit the settings at the top of the
+script; it has no CLI and opens the built-in mesh viewer by default. The
+one-step default prints analytic sensitivities for two selected wing-vertex
+coordinates. The example test compares those four coordinate/control pairs
+with complete-pipeline finite differences at the default design. Two load
+steps are available for mesh viewing only: their gradients disagree with
+finite differences and must not be used for optimization. See the
+[example details](docs/src/examples.md#cessna-208-strut-attachment-deformation).
+
 ## Documentation
 
 The documentation source is in [`docs/`](docs/). There is no hosted

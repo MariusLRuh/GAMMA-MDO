@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -75,6 +75,7 @@ jobs:
             bsm3/core/projections/function_set_projection_custom_op.py \
             bsm3/core/projections/orthogonality_projection_numpy.py \
             bsm3/core/projections/warm_start_candidate_projection_numpy.py \
+            bsm3/core/projections/surface_normals_numpy.py \
             bsm3/core/projections/warm_start_projections.py \
             bsm3/core/weighting_functions.py \
             bsm3/mesh_motion.py \
@@ -90,7 +91,12 @@ jobs:
             bsm3/preprocessing/symmetry.py \
             tests/test_derivative_gate.py \
             tests/test_curated_assets.py \
-            tests/test_e175_driver_configuration.py
+            tests/test_e175_driver_configuration.py \
+            tests/test_cessna_208_strut_attachment_deformation.py \
+            tests/test_projection_chordwise_restore.py \
+            tests/test_projection_creases.py \
+            tests/test_projection_normals.py \
+            examples/cessna_208_strut_attachment_deformation.py
 
       - name: Numpydoc checks for the M0 public surface
         run: |
@@ -98,7 +104,11 @@ jobs:
             bsm3/preprocessing/mesh_io.py \
             bsm3/preprocessing/__init__.py \
             tests/test_derivative_gate.py \
-            tests/test_curated_assets.py
+            tests/test_curated_assets.py \
+            tests/test_cessna_208_strut_attachment_deformation.py \
+            tests/test_projection_chordwise_restore.py \
+            tests/test_projection_creases.py \
+            tests/test_projection_normals.py
 
       - name: Numpydoc checks for the surface-motion core
         run: |
@@ -132,6 +142,7 @@ jobs:
             bsm3/core/projections/function_set_projection_custom_op.py \
             bsm3/core/projections/orthogonality_projection_numpy.py \
             bsm3/core/projections/warm_start_candidate_projection_numpy.py \
+            bsm3/core/projections/surface_normals_numpy.py \
             bsm3/core/projections/warm_start_projections.py \
             bsm3/preprocessing/__init__.py \
             bsm3/preprocessing/components.py \
@@ -162,7 +173,8 @@ jobs:
             bsm3/core/boundary_surface_movement/run_dafoam_gmsh.py \
             bsm3/core/boundary_surface_movement/volume_mesh_motion.py \
             bsm3/core/weighting_functions.py \
-            bsm3/plotting.py
+            bsm3/plotting.py \
+            examples/cessna_208_strut_attachment_deformation.py
 
       - name: Documentation build
         run: |

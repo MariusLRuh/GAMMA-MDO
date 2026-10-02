@@ -212,3 +212,48 @@ and optionally calls the public FD sweep for the complete analytic graph. Its
 mission and parasite-drag values are clearly labelled illustrative rather than
 validated E175 performance data; replace them with sourced analysis inputs for
 an actual design study.
+
+## Cessna 208 strut-attachment deformation
+
+The `examples/cessna_208_strut_attachment_deformation.py` script
+slides both strut wing ends spanwise and both fuselage ends fore/aft while
+keeping the two struts mirrored. It runs directly, with no command-line
+arguments:
+
+```bash
+python examples/cessna_208_strut_attachment_deformation.py
+```
+
+Edit the settings at the top of the script. The default moves the starboard
+wing attachment inboard by 5% of the full CAD span and the fuselage attachment
+aft by 5% of the fuselage-body length, in one load step. The source mesh has
+triangles and quads, so the example uses positive n-gon affine regularization.
+It also preserves the baseline chordwise CAD coordinate near the leading edge
+while allowing spanwise sliding. The built-in interactive viewer is enabled by
+default; set `VISUALIZE = False` for headless runs.
+
+This is one sampled design, not a claim that every combination of offsets is
+valid. In particular, the opposite 5%/5% corner has a partly exposed fuselage
+end and does not define four of its strut-fuselage intersection brackets. The
+example measures its final seam residuals and rejects an invalid result.
+Intermediate load-state seams are not checked by this example. The viewer
+can open before the final seam check; a failed check raises and writes a
+clearly marked invalid diagnostic rather than a normal result. Its source
+inputs and checksums are recorded in the [C208 asset record](../examples/cessna_208/ASSETS.md).
+
+At the default setting, no polygon normal flips occur. Eight quads have a
+negative corner; three already do in the source mesh. The example prints these
+quality figures and highlights the flagged cells in the viewer. A negative
+corner in a recombined quad is distinct from inversion of the whole polygon.
+
+The script reports analytic x-coordinate sensitivities at two selected wing
+vertices for both attachment variables. At the default design, these four
+coordinate/control pairs pass complete-pipeline centred finite differences
+in the example test. The final-mesh coordinate map is piecewise smooth:
+vertices can change CAD projection branches at knots or patch boundaries, so
+a gradient describes the selected branch and must be checked for the design
+and objective of interest.
+
+Two load steps are available for mesh viewing, with a runtime warning. Their
+mesh gradients measurably disagree with finite differences and **must not be
+used for optimization**. The cause remains under investigation.
