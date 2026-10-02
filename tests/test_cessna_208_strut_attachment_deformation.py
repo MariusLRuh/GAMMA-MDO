@@ -8,14 +8,15 @@ import numpy as np
 import pytest
 
 from examples import cessna_208_strut_attachment_deformation as example
+from bsm3.core.boundary_surface_movement import cessna_208_example as support
 
 
 def test_inputs_are_the_approved_bytes():
     """Pin the two user-approved C208 inputs shipped with the example."""
-    for path in (example.STEP_FILE, example.MESH_FILE):
+    for path in (support.STEP_FILE, support.MESH_FILE):
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == (
-            example.ASSET_HASHES[path.name]
+            support.ASSET_HASHES[path.name]
         )
 
 
@@ -29,7 +30,7 @@ def test_two_row_strut_map_is_mirrored_and_differentiable():
             [[1., 1., 1.], [1.1, 1.1, 1.], [1., 1.2, 1.]],
         ])
         fractions = csdl.Variable(value=np.array([0.25, 0.30]))
-        coefficients = example._two_row_strut_map(
+        coefficients = support._two_row_strut_map(
             fractions=fractions,
             baseline=baseline,
             fuselage_centroid=np.array([0., 0., 0.]),
@@ -60,11 +61,10 @@ def test_two_row_strut_map_is_mirrored_and_differentiable():
         recorder.stop()
 
 
-def test_two_step_mode_warns_that_gradients_must_not_be_used(monkeypatch):
+def test_two_step_mode_warns_that_gradients_must_not_be_used():
     """Expose the measured two-step derivative discrepancy at runtime."""
-    monkeypatch.setattr(example, "LOAD_STEPS", 2)
     with pytest.warns(RuntimeWarning, match="gradients disagree"):
-        example._validate_load_steps()
+        support._validate_load_steps(2)
 
 
 def test_invalid_final_seams_write_only_an_invalid_diagnostic(tmp_path):
@@ -80,13 +80,13 @@ def test_invalid_final_seams_write_only_an_invalid_diagnostic(tmp_path):
     }
     failure_file = tmp_path / "case.invalid.json"
     with pytest.raises(ValueError, match="Invalid final intersections"):
-        example._check_final_seams(bad, failure_file=failure_file)
+        support._check_final_seams(bad, failure_file=failure_file)
     assert json.loads(failure_file.read_text())["intersections_valid"] is False
     assert not (tmp_path / "case.json").exists()
     good = {"strut_wing": {**bad["strut_wing"],
                            "max_abs_host_sdf_m": 1e-10, "nonfinite": 0}}
     good_failure_file = tmp_path / "valid.invalid.json"
-    example._check_final_seams(good, failure_file=good_failure_file)
+    support._check_final_seams(good, failure_file=good_failure_file)
     assert not good_failure_file.exists()
 
 

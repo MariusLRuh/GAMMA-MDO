@@ -40,6 +40,7 @@ jobs:
             bsm3/component_parameters.py \
             bsm3/core/__init__.py \
             bsm3/core/boundary_surface_movement/__init__.py \
+            bsm3/core/boundary_surface_movement/cessna_208_example.py \
             bsm3/core/boundary_surface_movement/cfd_mesh_dafoam_analysis.py \
             bsm3/core/boundary_surface_movement/cfd_mesh_movement_test.py \
             bsm3/core/boundary_surface_movement/constraints.py \
@@ -161,6 +162,7 @@ jobs:
             bsm3/component_parameters.py \
             bsm3/core/__init__.py \
             bsm3/core/boundary_surface_movement/__init__.py \
+            bsm3/core/boundary_surface_movement/cessna_208_example.py \
             bsm3/core/boundary_surface_movement/cfd_mesh_dafoam_analysis.py \
             bsm3/core/boundary_surface_movement/cfd_mesh_movement_test.py \
             bsm3/core/boundary_surface_movement/dafoam_csdl.py \
