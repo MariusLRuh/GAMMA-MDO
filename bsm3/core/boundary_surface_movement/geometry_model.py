@@ -1,7 +1,7 @@
 """Neutral binding container for externally parameterized geometry.
 
 :class:`GeometryModel` declares *what moves* and binds it to BSM3's downstream
-mesh behaviour. It does **not** have to own the parameterization. The public
+mesh behavior. It does **not** have to own the parameterization. The public
 contract is::
 
     any differentiable CSDL/LFS-compatible parameterization
@@ -115,7 +115,7 @@ def _chord_pivot(vertices: np.ndarray, chord_fraction: float) -> np.ndarray:
 
 
 def _bounding_box_pivot(component) -> np.ndarray:
-    """Locate a body pivot at its control-point bounding-box centre.
+    """Locate a body pivot at its control-point bounding-box center.
 
     Parameters
     ----------
@@ -271,7 +271,7 @@ def _resolve_external_coefficients(component, value, name: str):
 
 
 class GeometryModel:
-    """Bind component coefficients and mesh behaviour for one configuration.
+    """Bind component coefficients and mesh behavior for one configuration.
 
     This is a declaration and binding envelope, not a parameterization. Add
     each component, say how its coefficients are produced, and name the
@@ -583,7 +583,7 @@ class GeometryModel:
         free_axial_fraction: tuple[float, float] = (0.05, 0.97),
         projection_name: str | None = None,
     ) -> None:
-        """Add a body whose cross-section scales about its bounding-box centre.
+        """Add a body whose cross-section scales about its bounding-box center.
 
         Parameters
         ----------

@@ -418,7 +418,7 @@ def generate_edge_neighbor_seeds(
     -------
     list of tuple
         Candidate sets of ``(patch_id, uv)``, each the same length as the input.
-        The first entry is the original seeds; later entries carry the neighbour's
+        The first entry is the original seeds; later entries carry the neighbor's
         ``patch_id`` where an edge match exists and the original seed otherwise.
     """
     patch_id = np.asarray(patch_id, dtype=np.int32)

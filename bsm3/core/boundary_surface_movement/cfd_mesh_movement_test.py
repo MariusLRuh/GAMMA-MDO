@@ -45,7 +45,7 @@ from bsm3.core.boundary_surface_movement.mesh_motion_pipeline import (
 # ---------------------------------------------------------------------------
 ASSET_DIRECTORY = Path(__file__).resolve().parent
 # R5 Fluent tetrahedral Euler mesh: about 2.2 M tetrahedra inside a 400 m
-# half-sphere, converted from millimetres to metres, with its 90 387-triangle
+# half-sphere, converted from millimeters to meters, with its 90 387-triangle
 # aircraft wall. Download it once with ``python -m bsm3.assets download e175-r5``.
 R5_ASSETS = ("e175-r5-wall", "e175-r5-wall-map", "e175-r5-volume")
 

@@ -10,7 +10,7 @@ properties that matter for correctness and testability:
 * ``mpi4py`` is imported lazily.  Importing BSM3, running the dependency-free
   unit tests, and single-process execution therefore do not require an MPI
   build.  When ``mpi4py`` is unavailable (or no communicator is supplied), a
-  :class:`SerialComm` provides the identity behaviour of a one-rank world.
+  :class:`SerialComm` provides the identity behavior of a one-rank world.
 * Every collective is wrapped so that a rank-0 exception is broadcast *before*
   any bulk data transfer.  This prevents the classic deadlock where rank 0
   raises while the other ranks block inside a matching collective.

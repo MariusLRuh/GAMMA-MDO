@@ -1069,7 +1069,7 @@ class FunctionSetProjectionModel:
                 total = sum(weight for _, weight in incident)
                 magnitude = np.linalg.norm(combined)
                 if magnitude <= 256*np.finfo(float).eps*total:
-                    raise ValueError(f"Cancelling CAD pole normals on patch {pid}, point {i}.")
+                    raise ValueError(f"Canceling CAD pole normals on patch {pid}, point {i}.")
                 normals[i] = combined/magnitude
                 support_count[i] = len(incident)
                 # The circumferential coordinate is not unique at a pole.
@@ -1273,7 +1273,7 @@ class FunctionSetProjectionModel:
         raising. Use ``state["converged"]`` to decide whether a point solved;
         ``state["residual"]`` and ``state["iterations"]`` describe how the solve
         behaved. Normal-mode ``sign_ambiguous`` is independent of Newton
-        convergence: unavailable incident faces or a cancelling pseudonormal
+        convergence: unavailable incident faces or a canceling pseudonormal
         produce a NaN signed output (unsigned ``distance`` remains available).
         ``collapsed_parametric_axes`` records structurally non-unique UV labels.
         Clamped CAD poles use the integrated analytic incident-normal fan,

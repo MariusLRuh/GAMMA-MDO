@@ -11,7 +11,7 @@ once, and they are cached and verified by SHA-256::
 
 Downloads go to ``~/.cache/gamma/assets`` unless ``GAMMA_ASSET_DIR`` is set.
 ``GAMMA_ASSET_URL`` overrides the release URL, for example to use a mirror.
-See each asset's licence notice (``E175_ASSETS.md`` and ``CESSNA_208_ASSETS.md``
+See each asset's license notice (``E175_ASSETS.md`` and ``CESSNA_208_ASSETS.md``
 next to the packaged files).
 """
 
@@ -64,7 +64,7 @@ class Asset:
 ASSETS = {asset.name: asset for asset in (
     Asset("e175-geometry", "e175.stp", 928_759,
           "3a55ddc748116d6c5ca0827a4df250548edb1dc99b643dbe25ec85b60d40bcb2",
-          True, "E175 STEP geometry (no winglets), metres"),
+          True, "E175 STEP geometry (no winglets), meters"),
     Asset("e175-quad-panel", "e175_quad_panel.msh", 1_300_938,
           "92feeeda05905a13d23a18c863e76b9596773beccb021148cc2d4e7016cd733c",
           True, "E175 quad-dominant surface panel mesh"),
@@ -88,7 +88,7 @@ ASSETS = {asset.name: asset for asset in (
           False, "E175 R5 tetrahedral Euler volume mesh (44 MB download)"),
     Asset("c208-geometry", "cessna_208.stp", 637_956,
           "c22fd7d08f369abf10297dc9ce53727d06c6b771779bd622014723c0831106b9",
-          True, "Cessna 208 STEP geometry, metres"),
+          True, "Cessna 208 STEP geometry, meters"),
     Asset("c208-surface-mesh", "cessna_208.msh", 2_071_329,
           "321b493a18ba0016274c0797a8754613388f09ade58beef0014480a92c1cbeb8",
           True, "Cessna 208 mixed triangle/quad surface mesh"),

@@ -26,17 +26,17 @@ class PanelCondition:
     Parameters
     ----------
     reference_area_m2
-        Aerodynamic reference area in square metres.
+        Aerodynamic reference area in square meters.
     reference_chord_m
-        Aerodynamic reference chord in metres.
+        Aerodynamic reference chord in meters.
     mach
         Freestream Mach number.
     alpha_degrees
         Angle of attack in degrees. A scalar CSDL variable may be supplied.
     density_kg_m3
-        Freestream density in kilograms per cubic metre.
+        Freestream density in kilograms per cubic meter.
     speed_of_sound_m_s
-        Freestream speed of sound in metres per second.
+        Freestream speed of sound in meters per second.
     pressure_coefficient_floor
         Lower numerical cutoff applied to the pressure coefficient.
     trailing_edge_angle_degrees

@@ -5,8 +5,8 @@ orphan: true
 # E175 example inputs
 
 All files below were created by Marius Ruh and are licensed under the
-[Creative Commons Attribution 4.0 International licence (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
-This licence covers these files only; GAMMA's source code remains under the
+[Creative Commons Attribution 4.0 International license (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
+This license covers these files only; GAMMA's source code remains under the
 GNU LGPL v3.0 or later.
 
 **Attribution.** "E175 example geometry and meshes" by Marius Ruh, CC BY 4.0.
@@ -33,11 +33,11 @@ python -m bsm3.assets download e175-r1-volume   # or e175-r5, or --all
 **Source.** The STEP geometry was modified in OpenVSP from the
 [E175 model in the OpenVSP Hangar](https://airshow.openvsp.org/vsp/A45NbHrPeHqdh8x0qMzj),
 which is dedicated to the public domain (CC0); it has no winglets. All
-coordinates are in metres.
+coordinates are in meters.
 
 **R1 and R5 meshes.** Two refinement levels of a tetrahedral Euler volume mesh
 of the half aircraft inside a 400 m half-sphere, generated in Ansys Fluent
-Meshing in millimetres and converted to Gmsh 2.2 ASCII in metres by GAMMA.
+Meshing in millimeters and converted to Gmsh 2.2 ASCII in meters by GAMMA.
 
 | Level | Nodes | Tetrahedra | Wall triangles |
 | --- | ---: | ---: | ---: |

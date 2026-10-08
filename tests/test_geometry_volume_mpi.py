@@ -1,8 +1,8 @@
 """Dependency-free / mock-MPI tests for the rank-0 geometry-to-volume coupling.
 
-These cover the communication protocol, cache behaviour, matrix-free VJP, and
+These cover the communication protocol, cache behavior, matrix-free VJP, and
 the forward-only FD guard without requiring mpi4py, DAFoam, PETSc, or an
-OpenFOAM case.  Multi-rank behaviour is exercised with small scripted
+OpenFOAM case.  Multi-rank behavior is exercised with small scripted
 communicators; the heavy DAFoam-coupled validation ladder runs on the cluster.
 """
 
@@ -502,144 +502,6 @@ def test_degree_radian_convention_is_verified():
     assert degree_radian_relative_error(wrong, grad_rad) > 1.0e-1
 
 
-# ---------------------------------------------------------------------------
-# Level 6 primal-only deformation diagnostic (mocked; no DAFoam)
-# ---------------------------------------------------------------------------
-from bsm3.core.boundary_surface_movement import e175_derivative_ladder as ladder
-
-
-class _MockDAFoamBackend:
-    """DAFoam backend stand-in that records primal calls and forbids adjoints."""
-
-    function_names = ("CL", "CD")
-
-    def __init__(self, deterministic):
-        self.deterministic_fd_mode = bool(deterministic)
-        self.invalidate_adjoint_on_primal = True
-        self.run_primal_inputs = []
-        self.compute_vjp_calls = 0
-
-    def run_primal(self, inputs):
-        self.run_primal_inputs.append(
-            {k: np.asarray(v, dtype=float).copy() for k, v in inputs.items()}
-        )
-        return {"CL": np.array([0.5]), "CD": np.array([0.02])}
-
-    def compute_vjp(self, *args, **kwargs):  # must never be called by Level 6
-        self.compute_vjp_calls += 1
-        raise AssertionError("Level 6 must not call compute_vjp")
-
-    def _solve_adjoint(self, *args, **kwargs):  # must never be called
-        raise AssertionError("Level 6 must not solve an adjoint")
-
-
-def _patch_level6(monkeypatch, *, num_points=4):
-    """Patch the heavy ladder collaborators; return the recorders."""
-    coords = np.arange(num_points * 3, dtype=float).reshape(num_points, 3)
-    direction = np.ones((num_points, 3), dtype=float)
-    state = {"coords": coords, "direction": direction,
-             "created": [], "prepare_calls": [], "payloads": []}
-
-    monkeypatch.setattr(ladder, "_make_geometry_backend", lambda comm: object())
-    monkeypatch.setattr(
-        ladder, "_baseline_coordinates_and_direction",
-        lambda comm, geometry_backend, **kw: (coords.copy(), direction.copy()),
-    )
-
-    def fake_make_dafoam_backend(comm, *, deterministic=False, case=None):
-        backend = _MockDAFoamBackend(deterministic)
-        state["created"].append(backend)
-        return backend
-
-    monkeypatch.setattr(ladder, "_make_dafoam_backend", fake_make_dafoam_backend)
-    monkeypatch.setattr(
-        ladder, "_prepare_deterministic_baseline",
-        lambda backend, coordinates, patch_velocity: state["prepare_calls"].append(
-            (backend, np.asarray(coordinates).copy())
-        ),
-    )
-    monkeypatch.setattr(
-        ladder, "_write_result",
-        lambda name, payload, comm: state["payloads"].append(payload),
-    )
-    monkeypatch.setenv("DAFOAM_CASE_DIRECTORY", "/tmp/level6_isolated_case")
-    return state
-
-
-def test_level6_fresh_runs_one_primal_without_baseline(monkeypatch):
-    monkeypatch.setenv("LADDER_PRIMAL_POINT", "plus")
-    monkeypatch.setenv("LADDER_PRIMAL_START", "fresh")
-    monkeypatch.setenv("LADDER_PRIMAL_ETA", "1e-2")
-    state = _patch_level6(monkeypatch)
-
-    payload = ladder.level6_primal_only_deformation(SerialComm())
-
-    assert len(state["created"]) == 1
-    backend = state["created"][0]
-    # fresh => nondeterministic backend, no baseline capture.
-    assert backend.deterministic_fd_mode is False
-    assert state["prepare_calls"] == []
-    # Exactly one target primal, at coords + eta*direction.
-    assert len(backend.run_primal_inputs) == 1
-    np.testing.assert_allclose(
-        backend.run_primal_inputs[0]["volume_coordinates"],
-        state["coords"] + 1e-2 * state["direction"],
-    )
-    assert backend.compute_vjp_calls == 0
-    assert payload["initialization"] == "fresh"
-    assert payload["point"] == "plus"
-    assert payload["CD"] == 0.02 and payload["CL"] == 0.5
-
-
-def test_level6_baseline_prepares_once_then_solves_target(monkeypatch):
-    monkeypatch.setenv("LADDER_PRIMAL_POINT", "minus")
-    monkeypatch.setenv("LADDER_PRIMAL_START", "baseline")
-    monkeypatch.setenv("LADDER_PRIMAL_ETA", "2e-2")
-    state = _patch_level6(monkeypatch)
-
-    ladder.level6_primal_only_deformation(SerialComm())
-
-    backend = state["created"][0]
-    # baseline => deterministic backend, baseline captured exactly once.
-    assert backend.deterministic_fd_mode is True
-    assert len(state["prepare_calls"]) == 1
-    # Then exactly one target solve, at coords - eta*direction.
-    assert len(backend.run_primal_inputs) == 1
-    np.testing.assert_allclose(
-        backend.run_primal_inputs[0]["volume_coordinates"],
-        state["coords"] - 2e-2 * state["direction"],
-    )
-    assert backend.compute_vjp_calls == 0
-
-
-def test_level6_requires_isolated_case_directory(monkeypatch):
-    monkeypatch.setenv("LADDER_PRIMAL_POINT", "baseline")
-    monkeypatch.setenv("LADDER_PRIMAL_START", "fresh")
-    _patch_level6(monkeypatch)
-    monkeypatch.delenv("DAFOAM_CASE_DIRECTORY", raising=False)
-    with pytest.raises(RuntimeError, match="DAFOAM_CASE_DIRECTORY"):
-        ladder.level6_primal_only_deformation(SerialComm())
-
-
-def test_level6_rejects_invalid_controls(monkeypatch):
-    _patch_level6(monkeypatch)
-    monkeypatch.setenv("LADDER_PRIMAL_START", "fresh")
-    monkeypatch.setenv("LADDER_PRIMAL_POINT", "sideways")
-    with pytest.raises(ValueError, match="LADDER_PRIMAL_POINT"):
-        ladder.level6_primal_only_deformation(SerialComm())
-    monkeypatch.setenv("LADDER_PRIMAL_POINT", "baseline")
-    monkeypatch.setenv("LADDER_PRIMAL_START", "warm")
-    with pytest.raises(ValueError, match="LADDER_PRIMAL_START"):
-        ladder.level6_primal_only_deformation(SerialComm())
-    monkeypatch.setenv("LADDER_PRIMAL_START", "fresh")
-    monkeypatch.setenv("LADDER_PRIMAL_ETA", "0")
-    with pytest.raises(ValueError, match="LADDER_PRIMAL_ETA"):
-        ladder.level6_primal_only_deformation(SerialComm())
-    monkeypatch.setenv("LADDER_PRIMAL_ETA", "not_a_number")
-    with pytest.raises(ValueError, match="LADDER_PRIMAL_ETA"):
-        ladder.level6_primal_only_deformation(SerialComm())
-
-
 def test_derivative_comparison_best_step_is_none_without_a_recorded_error():
     """Return ``(None, inf)`` when an analytical key has no finite error."""
     import math
@@ -664,7 +526,7 @@ def test_derivative_comparison_best_step_is_none_without_a_recorded_error():
 
 
 def test_derivative_comparison_best_step_is_a_float_when_errors_exist():
-    """Keep the populated-comparison selection behaviour unchanged."""
+    """Keep the populated-comparison selection behavior unchanged."""
     key = ("CD", "wing_area")
     comparison = DerivativeComparison(
         analytical={key: np.array([1.0])},

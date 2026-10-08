@@ -77,7 +77,7 @@ The STEP and mesh inputs ship with GAMMA. Edit the settings at the top of the
 script; it has no CLI and opens the built-in mesh viewer by default. The
 one-step default prints the analytic sensitivity of the mean final mesh node
 (x, y, z) to each attachment variable. Set `CHECK_DERIVATIVES = True` to
-compare it with complete-pipeline centred finite differences in the same run.
+compare it with complete-pipeline centered finite differences in the same run.
 Two load steps are available for mesh viewing only: their gradients disagree
 with finite differences and must not be used for optimization. See the
 [example details](docs/src/examples.md#cessna-208-strut-attachment-deformation).

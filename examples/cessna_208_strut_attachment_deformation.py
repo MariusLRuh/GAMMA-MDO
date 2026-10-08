@@ -59,7 +59,7 @@ NGON_REGULARIZATION_WEIGHT = 3.0
 # The beta, length and decay choices have no effect while disabled.
 DISTANCE_WEIGHTING_ENABLED = False
 DISTANCE_BETA = 0.5
-DISTANCE_LENGTH_SCALE_M = 0.5  # Metres; 10 ft would be 3.048 m.
+DISTANCE_LENGTH_SCALE_M = 0.5  # Meters; 10 ft would be 3.048 m.
 DISTANCE_DECAY = "exp"
 VISUALIZE = True  # Built-in viewer shows flagged elements in red.
 # Wing vertices within the hold distance of the local leading edge keep their
@@ -72,7 +72,7 @@ WING_LEADING_EDGE_FADE_M = 0.16
 # 5. Derivative check (one load step only).
 # The script always prints the analytic sensitivity of the mean final mesh node
 # (x, y, z) to each design variable. True also re-runs the complete pipeline
-# at design +/- h and compares those vectors with centred finite differences.
+# at design +/- h and compares those vectors with centered finite differences.
 # Each step size adds four pipeline re-executions.
 CHECK_DERIVATIVES = False
 DERIVATIVE_CHECK_STEP_SIZES = (1.0e-4, 1.0e-5)
@@ -94,7 +94,7 @@ def main():
     settings = {
         "geometry_file": STEP_FILE.name,
         "surface_mesh_file": MESH_FILE.name,
-        "units": "metres",
+        "units": "meters",
         "wing_attachment_delta_fraction": WING_ATTACHMENT_DELTA_FRACTION,
         "fuselage_attachment_delta_fraction": FUSELAGE_ATTACHMENT_DELTA_FRACTION,
         "load_steps": LOAD_STEPS,

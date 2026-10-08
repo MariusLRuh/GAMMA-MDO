@@ -50,9 +50,10 @@ python -c "import bsm3; print(bsm3.__version__, bsm3.__file__)"
 python -m pytest tests -q
 ```
 
-The DAFoam analysis driver additionally requires a configured OpenFOAM case in
-`cfd_mesh_dafoam_analysis.py`. The deformation-only driver can be tested first:
+A complete E175 DAFoam analysis driver is not yet published. The
+deformation-only driver can be tested after downloading its R5 meshes:
 
 ```bash
+python -m bsm3.assets download e175-r5
 python -m bsm3.core.boundary_surface_movement.cfd_mesh_movement_test
 ```

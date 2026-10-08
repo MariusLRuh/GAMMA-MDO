@@ -15,16 +15,16 @@ class FuelBurnParameters:
     Parameters
     ----------
     design_range_m
-        Cruise design range in metres.
+        Cruise design range in meters.
     thrust_specific_fuel_consumption_kg_per_newton_second
         Jet-engine thrust-specific fuel consumption in kilograms per
         newton-second.
     cruise_speed_m_s
-        Cruise true airspeed in metres per second.
+        Cruise true airspeed in meters per second.
     initial_weight_newton
         Aircraft weight at the start of the cruise segment in newtons.
     gravity_m_s2
-        Gravitational acceleration in metres per second squared. The default
+        Gravitational acceleration in meters per second squared. The default
         is the conventional standard gravity, exactly 9.80665 m/s².
 
     Notes

@@ -21,7 +21,7 @@ Vec3 = Tuple[float, float, float]
 
 def _require_pyvista():
     if pv is None:  # pragma: no cover
-        message = "PyVista is required for contour extraction and visualisation."
+        message = "PyVista is required for contour extraction and visualization."
         if _PYVISTA_IMPORT_ERROR is not None:
             raise ImportError(message) from _PYVISTA_IMPORT_ERROR
         raise ImportError(message)

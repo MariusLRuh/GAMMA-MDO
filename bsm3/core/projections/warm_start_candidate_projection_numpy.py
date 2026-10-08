@@ -518,13 +518,13 @@ def _compute_geometric_near_edges(
     Unlike the parametric ``_which_edge`` band (``u <= eps_edge``), the test is
     *physical* and grid-independent: an edge is "near" when the seed's physical
     distance to it (``|S_u| * du_to_edge``) is within a band dominated by the
-    projection gap ``g = ||point - S(seed)||``. Rationale: the neighbour patch
+    projection gap ``g = ||point - S(seed)||``. Rationale: the neighbor patch
     touches the shared edge, so the nearest point it can offer is at least the
     seed's physical distance to that edge; if that already exceeds the current
-    gap, the neighbour cannot win and can be skipped. When the warm start lands
+    gap, the neighbor cannot win and can be skipped. When the warm start lands
     in the *wrong* patch, ``g`` is inflated precisely because ``S(seed)`` is far
     from the true closest point, which automatically widens the band enough to
-    admit the correct neighbour — without any dependence on ``nu``/``nv``.
+    admit the correct neighbor — without any dependence on ``nu``/``nv``.
 
     A small floor tied to one sampling cell (``2*eps_edge ~ max(du, dv)``, times
     the local tangent magnitude) keeps coverage at least as generous as the old
@@ -770,7 +770,7 @@ def _build_local_retry_candidate_specs(
     the Newton seeds deep enough in the interior to fall into that basin, while
     the min-``dist2`` selection keeps the genuinely closest result. This is the
     "make the local retry an actual refinement" fix; it stays on-patch, so it
-    adds no cross-patch behaviour and cannot flip a node to another skin.
+    adds no cross-patch behavior and cannot flip a node to another skin.
     """
     specs: List[_CandidateSpec] = []
     base = max(float(uv_step), 1e-12)
@@ -1323,7 +1323,7 @@ def project_points_with_warm_start_candidates_numpy(
     # Retry not only on genuine non-convergence but also on boundary clamping: a
     # point reported converged solely because the active set masked an outward
     # residual at a patch edge wanted to slide across that edge. Feeding it into
-    # the retry path lets the neighbour-patch candidates compete. The retry only
+    # the retry path lets the neighbor-patch candidates compete. The retry only
     # *replaces* the current selection when a candidate is strictly better and
     # normal-compatible (_is_candidate_better / _is_retry_candidate_compatible),
     # so over-flagging clamped points that truly belong on the edge is harmless.

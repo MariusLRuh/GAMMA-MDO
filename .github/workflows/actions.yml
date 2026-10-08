@@ -42,12 +42,10 @@ jobs:
             bsm3/core/__init__.py \
             bsm3/core/boundary_surface_movement/__init__.py \
             bsm3/core/boundary_surface_movement/cessna_208_example.py \
-            bsm3/core/boundary_surface_movement/cfd_mesh_dafoam_analysis.py \
             bsm3/core/boundary_surface_movement/cfd_mesh_movement_test.py \
             bsm3/core/boundary_surface_movement/constraints.py \
             bsm3/core/boundary_surface_movement/current_graph_solve.py \
             bsm3/core/boundary_surface_movement/dafoam_csdl.py \
-            bsm3/core/boundary_surface_movement/e175_derivative_ladder.py \
             bsm3/core/boundary_surface_movement/elasticity.py \
             bsm3/core/boundary_surface_movement/forward_only_fd_checker.py \
             bsm3/core/boundary_surface_movement/free_region.py \
@@ -167,10 +165,8 @@ jobs:
             bsm3/core/__init__.py \
             bsm3/core/boundary_surface_movement/__init__.py \
             bsm3/core/boundary_surface_movement/cessna_208_example.py \
-            bsm3/core/boundary_surface_movement/cfd_mesh_dafoam_analysis.py \
             bsm3/core/boundary_surface_movement/cfd_mesh_movement_test.py \
             bsm3/core/boundary_surface_movement/dafoam_csdl.py \
-            bsm3/core/boundary_surface_movement/e175_derivative_ladder.py \
             bsm3/core/boundary_surface_movement/forward_only_fd_checker.py \
             bsm3/core/boundary_surface_movement/geometry_volume_backend.py \
             bsm3/core/boundary_surface_movement/geometry_volume_mpi.py \

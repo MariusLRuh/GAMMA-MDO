@@ -242,7 +242,7 @@ def _validate_derivative_check(*, load_steps, enabled, step_sizes):
 
 
 def _derivative_check(result, controls, analytic, *, recorder, step_sizes):
-    """Compare mean-node gradients with centred finite differences.
+    """Compare mean-node gradients with centered finite differences.
 
     Each control is perturbed by +/- h and the complete recorded pipeline is
     re-executed. The baseline design is restored before returning.
@@ -278,7 +278,7 @@ def _derivative_check(result, controls, analytic, *, recorder, step_sizes):
         entry["relative_error"] <= DERIVATIVE_CHECK_TOLERANCE
         for entries in checks.values() for entry in entries.values()
     )
-    print("\n=== Mean-node derivative check (centred finite differences) ===")
+    print("\n=== Mean-node derivative check (centered finite differences) ===")
     print("  relative error = |analytic - FD| / |FD| over the (x, y, z) vector")
     for name, entries in checks.items():
         for step, entry in entries.items():
@@ -314,7 +314,7 @@ def _sensitivity_report(result, controls, load_steps):
             ))
     return {
         "status": "analytic one-step mean-node sensitivities",
-        "units": "metres per unit attachment fraction",
+        "units": "meters per unit attachment fraction",
         "mean_node_xyz_gradients": gradients,
     }
 

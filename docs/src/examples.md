@@ -209,7 +209,7 @@ python examples/e175_fuel_burn_optimization.py
 The script keeps `MeshMotion.derivative_check` disabled because that debug
 convenience would register its own objective. It registers fuel burn directly
 and optionally calls the public FD sweep for the complete analytic graph. Its
-mission and parasite-drag values are clearly labelled illustrative rather than
+mission and parasite-drag values are clearly labeled illustrative rather than
 validated E175 performance data; replace them with sourced analysis inputs for
 an actual design study.
 
@@ -252,7 +252,7 @@ The script reports the analytic sensitivity of the mean final mesh node
 (x, y, z) to both attachment variables. Set `CHECK_DERIVATIVES = True` (one
 load step only) to re-run the complete pipeline at each design variable
 plus and minus every step in `DERIVATIVE_CHECK_STEP_SIZES` and compare each
-vector with centred finite differences; the check passes within 0.5% of the
+vector with centered finite differences; the check passes within 0.5% of the
 vector length. The example test runs the same comparison at the default
 design. The final-mesh coordinate
 map is piecewise smooth: projected vertices can jump between nearby

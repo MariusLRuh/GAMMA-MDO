@@ -153,3 +153,19 @@ bsm3/core/boundary_surface_movement/E175_w_fairing_mesh.msh
 bsm3/core/boundary_surface_movement/wall_surface.npz
 bsm3/core/boundary_surface_movement/wing_fuse_test*.msh
 bsm3/core/boundary_surface_movement/wing_fuse_test*.stp
+
+# Local-only research scripts that need the local-only assets above.
+bsm3/core/boundary_surface_movement/movement_test_csdl_single_rbf_master*.py
+bsm3/core/boundary_surface_movement/movement_test_csdl_static_seam.py
+bsm3/core/boundary_surface_movement/movement_test_new*.py
+bsm3/core/boundary_surface_movement/movement_test_old.py
+bsm3/core/boundary_surface_movement/movement_test_embraer_175_hex_mesh.py
+bsm3/core/boundary_surface_movement/wing_fuse_quad_dominant_symmetry.py
+
+# Local-only DAFoam driver, derivative ladder, cluster scripts and their tests;
+# to be published later. The DAFoam coupling library itself stays public.
+bsm3/core/boundary_surface_movement/cfd_mesh_dafoam_analysis.py
+bsm3/core/boundary_surface_movement/e175_derivative_ladder.py
+bsm3/core/boundary_surface_movement/DAFOAM_MPI_RANK0_HANDOFF.md
+bsm3/core/boundary_surface_movement/slurm/
+tests/test_dafoam_driver.py

@@ -111,7 +111,7 @@ class FlowConfig:
         DAFoam solver class to instantiate, for example
         ``"DARhoSimpleCFoam"``.
     velocity_m_per_s
-        Freestream speed in metres per second.
+        Freestream speed in meters per second.
     angle_of_attack_deg
         Angle of attack in **degrees**, used to build the flow and force
         direction vectors.
@@ -120,11 +120,11 @@ class FlowConfig:
     temperature_k
         Freestream static temperature in kelvin.
     nu_tilda_m2_per_s
-        Spalart-Allmaras working variable in square metres per second, applied
+        Spalart-Allmaras working variable in square meters per second, applied
         as the farfield ``nuTilda0`` primal boundary condition. Must be finite
         and non-negative.
     reference_area_m2
-        Reference area in square metres, normalizing the force coefficients.
+        Reference area in square meters, normalizing the force coefficients.
     gas_constant_j_per_kg_k
         Specific gas constant in joules per kilogram-kelvin.
     normal_axis

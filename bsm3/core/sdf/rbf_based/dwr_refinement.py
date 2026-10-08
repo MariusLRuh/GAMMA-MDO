@@ -298,7 +298,7 @@ def assemble_wendland_matrix_from_sparse_distance(
     """
     Assemble sparse Wendland matrix using ``cKDTree.sparse_distance_matrix``.
 
-    This path pushes neighbour discovery and distance extraction into SciPy's
+    This path pushes neighbor discovery and distance extraction into SciPy's
     C implementation, which is often faster than building Python ragged lists
     via ``query_ball_point`` for large prediction workloads.
 
@@ -355,7 +355,7 @@ def evaluate_rbf_matvec(
        (query, center) pairs within radius rho in parallel — this is the
        dominant cost and is fully multi-threaded inside SciPy.
     2. The ragged neighbor lists are flattened into three parallel arrays
-       (row indices, col indices, distances) using fully-vectorised NumPy
+       (row indices, col indices, distances) using fully-vectorized NumPy
        operations — no Python loop over query points.
     3. Wendland C2 kernel values and the final weighted sum are computed
        in bulk with NumPy, bypassing sparse-matrix construction entirely.
@@ -400,7 +400,7 @@ def evaluate_rbf_matvec(
         tgt_pts, r=rho, workers=workers, return_sorted=False
     )
 
-    # --- Step 2: fully-vectorised COO assembly (no Python loop) --------------
+    # --- Step 2: fully-vectorized COO assembly (no Python loop) --------------
     counts = np.fromiter(
         (len(nb) for nb in neighbor_lists), dtype=np.int32, count=n_tgt
     )
@@ -420,7 +420,7 @@ def evaluate_rbf_matvec(
             col_idx[pos : pos + k] = nb
             pos += k
 
-    # --- Step 3: kernel evaluation (fully vectorised) ------------------------
+    # --- Step 3: kernel evaluation (fully vectorized) ------------------------
     diff = tgt_pts[row_idx] - src_pts[col_idx]               # (nnz, 3)
     q = np.sqrt(np.einsum("ij,ij->i", diff, diff)) * inv_rho # (nnz,)
     # query_ball_point guarantees q <= 1; clip to handle floating-point edge
@@ -1002,7 +1002,7 @@ class HybridWendlandC2DWRRefinerOptimized:
         _valid_shortlist_modes = {"weight", "dist_x_weight", "banded_weight", "geometry_banded_weight"}
         if shortlist_mode not in _valid_shortlist_modes:
             raise ValueError(
-                f"shortlist_mode={shortlist_mode!r} is not recognised; "
+                f"shortlist_mode={shortlist_mode!r} is not recognized; "
                 f"choose one of {sorted(_valid_shortlist_modes)}"
             )
         self.shortlist_mode = shortlist_mode
@@ -1028,7 +1028,7 @@ class HybridWendlandC2DWRRefinerOptimized:
         valid_selection_modes = {"eta", "dwr_plus_geometry"}
         if selection_score_mode not in valid_selection_modes:
             raise ValueError(
-                f"selection_score_mode={selection_score_mode!r} is not recognised; "
+                f"selection_score_mode={selection_score_mode!r} is not recognized; "
                 f"choose one of {sorted(valid_selection_modes)}"
             )
         self.selection_score_mode = selection_score_mode
@@ -1036,7 +1036,7 @@ class HybridWendlandC2DWRRefinerOptimized:
         self.selection_curvature_weight = float(selection_curvature_weight)
         self.selection_sign_weight = float(selection_sign_weight)
         self.selection_surface_tau = float(selection_surface_tau)
-        # Temporary diagnostics to help understand shortlist/selection behaviour.
+        # Temporary diagnostics to help understand shortlist/selection behavior.
         # When True, additional counts per SDF band are added to the info/diagnostics
         # dictionaries. This is intended to be removed after debugging.
         self.shortlist_diagnostics = bool(shortlist_diagnostics)

@@ -369,7 +369,7 @@ def make_patch_velocity(airspeed_m_per_s, angle_of_attack_deg):
     Parameters
     ----------
     airspeed_m_per_s
-        Freestream speed in metres per second, as a CSDL variable or scalar.
+        Freestream speed in meters per second, as a CSDL variable or scalar.
     angle_of_attack_deg
         Angle of attack in **degrees**, matching DAFoam's ``patchVelocity``
         convention.
