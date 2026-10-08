@@ -36,13 +36,14 @@ setup(
     include_package_data=True,
     package_data={
         "bsm3.core.boundary_surface_movement": [
-            "embraer_175_no_winglets.stp",
+            "e175.stp",
+            "e175_quad_panel.msh",
+            "e175_r1_wall.msh",
+            "e175_r1_wall.volume_map.npz",
+            "E175_ASSETS.md",
             "cessna_208.stp",
             "cessna_208.msh",
             "CESSNA_208_ASSETS.md",
-            "openvsp_euler_volume_mesh/e175_euler_volume.msh",
-            "openvsp_euler_volume_mesh/e175_openvsp_aircraft_wall.msh",
-            "openvsp_euler_volume_mesh/e175_openvsp_aircraft_wall.volume_map.npz",
         ],
     },
     python_requires=">=3.9",

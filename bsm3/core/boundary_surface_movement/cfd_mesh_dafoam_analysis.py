@@ -69,6 +69,9 @@ from bsm3.core.boundary_surface_movement.volume_mesh_motion import (
 
 
 ASSET_DIRECTORY = Path(__file__).resolve().parent
+# Local-only: this OpenVSP Euler mesh carries the OpenFOAM patch names that
+# CASE expects (aircraft, symmetry, inlet, outlet, farfield). It is not
+# published with GAMMA; supply a mesh with the same patches to run DAFoam.
 OPENVSP_MESH_DIRECTORY = ASSET_DIRECTORY / "openvsp_euler_volume_mesh"
 
 
@@ -76,7 +79,7 @@ OPENVSP_MESH_DIRECTORY = ASSET_DIRECTORY / "openvsp_euler_volume_mesh"
 # 1. Geometry and matching mesh files
 # ---------------------------------------------------------------------------
 MODEL_FILES = InputFiles(
-    geometry_file=ASSET_DIRECTORY / "embraer_175_no_winglets.stp",
+    geometry_file=ASSET_DIRECTORY / "e175.stp",
     surface_mesh_file=OPENVSP_MESH_DIRECTORY / "e175_openvsp_aircraft_wall.msh",
     volume_mesh_file=OPENVSP_MESH_DIRECTORY / "e175_euler_volume.msh",
     volume_wall_map_file=(

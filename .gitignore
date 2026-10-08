@@ -142,3 +142,14 @@ _conf_master.py
 # E175 mesh-motion runtime artifacts
 bsm3/core/boundary_surface_movement/_setup_cache_*.npz
 bsm3/core/boundary_surface_movement/openvsp_euler_volume_mesh/deformation_results/
+
+# Local-only research assets: kept on disk, not published. The public example
+# assets are listed in bsm3/assets.py; large ones download into
+# ~/.cache/gamma/assets with `python -m bsm3.assets download`.
+bsm3/core/boundary_surface_movement/openvsp_euler_volume_mesh/
+bsm3/core/boundary_surface_movement/fluent_R*_tet_euler_volume_mesh/
+bsm3/core/boundary_surface_movement/E175_w_fairing.stp
+bsm3/core/boundary_surface_movement/E175_w_fairing_mesh.msh
+bsm3/core/boundary_surface_movement/wall_surface.npz
+bsm3/core/boundary_surface_movement/wing_fuse_test*.msh
+bsm3/core/boundary_surface_movement/wing_fuse_test*.stp

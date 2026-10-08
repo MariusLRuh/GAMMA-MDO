@@ -168,7 +168,7 @@ integration test exercises that scale without folds or inversions.
 ## Advanced quad-panel calibration
 
 `examples/e175_quad_panel_calibration.py` runs the same geometry motion on the
-clean curated `embraer_175_panel_quad_dominant_high_quality.msh` panel. It
+clean curated `e175_quad_panel.msh` panel. It
 keeps `polygon_regularization_weight` explicit because the best weight depends
 on mesh topology and deformation; `0.3` remains a historical placeholder while
 the calibration sweep is reviewed, not a universal recommendation.

@@ -16,7 +16,7 @@ DEFAULT_STEP_FILE = (
     Path(__file__).resolve().parents[1]
     / "core"
     / "boundary_surface_movement"
-    / "E175_w_fairing.stp"
+    / "e175.stp"
 )
 
 _COMPONENT_ALIASES = {

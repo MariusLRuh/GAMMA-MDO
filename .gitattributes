@@ -1,2 +1,6 @@
+bsm3/core/boundary_surface_movement/e175.stp -diff
+bsm3/core/boundary_surface_movement/e175_quad_panel.msh -diff
+bsm3/core/boundary_surface_movement/e175_r1_wall.msh -diff
+bsm3/core/boundary_surface_movement/e175_r1_wall.volume_map.npz -diff
 bsm3/core/boundary_surface_movement/cessna_208.stp -diff
 bsm3/core/boundary_surface_movement/cessna_208.msh -diff

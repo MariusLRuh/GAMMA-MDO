@@ -11,8 +11,9 @@ from bsm3 import plotting, preprocessing
 
 
 ASSET_DIR = Path("bsm3/core/boundary_surface_movement")
-E175_STEP = ASSET_DIR / "E175_w_fairing.stp"
-E175_MESH = ASSET_DIR / "E175_w_fairing_mesh.msh"
+E175_STEP = ASSET_DIR / "e175.stp"
+E175_MESH = ASSET_DIR / "e175_r1_wall.msh"
+E175_FIRST_VERTEX = [18.289553605559405, 11.9144025401861, 1.393874452294162]
 
 
 class FakeFunction:
@@ -187,15 +188,15 @@ def test_create_components_reports_available_options_for_bad_search_name():
 def test_import_mesh_reads_e175_msh_arrays():
     mesh = bsm3.preprocessing.import_mesh(E175_MESH)
 
-    assert mesh.vertices.shape == (13746, 3)
-    assert mesh.connectivity.shape == (27488, 3)
-    assert mesh.cell_blocks["triangle"].shape == (27488, 3)
-    assert mesh.cell_types.shape == (27488,)
+    assert mesh.vertices.shape == (16400, 3)
+    assert mesh.connectivity.shape == (32522, 3)
+    assert mesh.cell_blocks["triangle"].shape == (32522, 3)
+    assert mesh.cell_types.shape == (32522,)
     assert set(mesh.cell_types) == {"triangle"}
     assert mesh.node_ids[0] == 1
     assert mesh.element_ids["triangle"][0] == 1
-    np.testing.assert_allclose(mesh.vertices[0], [11.4851368572, 1.3088713388, 0.1235199042])
-    np.testing.assert_array_equal(mesh.connectivity[0], [0, 1, 2])
+    np.testing.assert_allclose(mesh.vertices[0], E175_FIRST_VERTEX)
+    np.testing.assert_array_equal(mesh.connectivity[0], [0, 2, 1])
     assert mesh.metadata["format"] == "msh"
 
 
@@ -738,8 +739,8 @@ def test_plot_mesh_reads_e175_mesh_without_showing():
     elements = bsm3.plotting.plot_mesh(mesh=E175_MESH, color="gray", opacity=0.25, show=False)
 
     assert len(elements) == 1
-    assert elements[0]["mesh"].n_points == 13746
-    assert elements[0]["mesh"].n_cells == 27488
+    assert elements[0]["mesh"].n_points == 16400
+    assert elements[0]["mesh"].n_cells == 32522
     assert elements[0]["kwargs"]["color"] == "gray"
     assert elements[0]["kwargs"]["opacity"] == 0.25
 
@@ -750,8 +751,8 @@ def test_plot_mesh_accepts_preprocessing_mesh_data():
     elements = bsm3.plotting.plot_mesh(mesh=mesh, color="gray", opacity=0.25, show=False)
 
     assert len(elements) == 1
-    assert elements[0]["mesh"].n_points == 13746
-    assert elements[0]["mesh"].n_cells == 27488
+    assert elements[0]["mesh"].n_points == 16400
+    assert elements[0]["mesh"].n_cells == 32522
     assert elements[0]["kwargs"]["color"] == "gray"
     assert elements[0]["kwargs"]["opacity"] == 0.25
 
@@ -799,7 +800,7 @@ def test_highlight_mesh_nodes_uses_e175_mesh_and_one_based_node_ids():
     )
 
     assert len(elements) == 3
-    np.testing.assert_allclose(elements[0]["mesh"].points[0], [11.4851368572, 1.3088713388, 0.1235199042])
+    np.testing.assert_allclose(elements[0]["mesh"].points[0], E175_FIRST_VERTEX)
     assert [element["kwargs"]["color"] for element in elements] == ["red", "green", "blue"]
 
 
@@ -814,7 +815,7 @@ def test_highlight_mesh_nodes_accepts_preprocessing_mesh_data():
     )
 
     assert len(elements) == 1
-    np.testing.assert_allclose(elements[0]["mesh"].points[0], [11.4851368572, 1.3088713388, 0.1235199042])
+    np.testing.assert_allclose(elements[0]["mesh"].points[0], E175_FIRST_VERTEX)
 
 
 def test_highlight_mesh_nodes_accepts_point_coordinates_with_negative_values():

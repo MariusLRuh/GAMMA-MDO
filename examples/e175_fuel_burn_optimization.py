@@ -24,8 +24,8 @@ ASSETS = (
     / "core"
     / "boundary_surface_movement"
 )
-STEP_FILE = ASSETS / "embraer_175_no_winglets.stp"
-PANEL_MESH_FILE = ASSETS / "embraer_175_panel_quad_dominant_high_quality.msh"
+STEP_FILE = ASSETS / "e175.stp"
+PANEL_MESH_FILE = ASSETS / "e175_quad_panel.msh"
 CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "gamma_e175_panel_cache"
 
 REFERENCE_WING_AREA_M2 = 70.0

@@ -44,12 +44,8 @@ ASSETS = (
     / "core"
     / "boundary_surface_movement"
 )
-STEP_FILE = ASSETS / "embraer_175_no_winglets.stp"
-SURFACE_MESH_FILE = (
-    ASSETS
-    / "fluent_R1_tet_euler_volume_mesh"
-    / "e175_fluent_R1_aircraft_wall_tri.msh"
-)
+STEP_FILE = ASSETS / "e175.stp"
+SURFACE_MESH_FILE = ASSETS / "e175_r1_wall.msh"
 CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "bsm3_e175_example_cache"
 
 # Full-size deformation targets, and the neutral value each one moves from.

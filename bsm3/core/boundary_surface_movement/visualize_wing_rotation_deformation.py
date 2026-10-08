@@ -21,7 +21,7 @@ except ImportError as exc:  # pragma: no cover
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[2]
 DEFAULT_HDF5 = REPO_ROOT / "wing_rotation_defomration.hdf5"
-DEFAULT_MESH = SCRIPT_DIR / "embraer_175_panel_quad_dominant_high_quality.msh"
+DEFAULT_MESH = SCRIPT_DIR / "e175_quad_panel.msh"
 DEFAULT_CP_BOUNDS = (-1.5, 1.0)
 os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "bsm3_matplotlib"))
 

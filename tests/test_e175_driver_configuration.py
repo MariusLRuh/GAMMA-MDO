@@ -84,18 +84,12 @@ def test_public_drivers_expose_explicit_matching_model_files():
 
     movement_files = cfd_mesh_movement_test.MODEL_FILES
     assert isinstance(movement_files, InputFiles)
-    assert movement_files.geometry_file.name == "embraer_175_no_winglets.stp"
-    assert (
-        movement_files.surface_mesh_file.name
-        == "e175_fluent_R4_aircraft_wall_tri.msh"
-    )
-    assert (
-        movement_files.volume_mesh_file.name
-        == "e175_fluent_R4_tet_euler_volume.msh"
-    )
+    assert movement_files.geometry_file.name == "e175.stp"
+    assert movement_files.surface_mesh_file.name == "e175_r5_wall.msh"
+    assert movement_files.volume_mesh_file.name == "e175_r5_volume.msh"
     assert (
         movement_files.volume_wall_map_file.name
-        == "e175_fluent_R4_aircraft_wall_tri.volume_map.npz"
+        == "e175_r5_wall.volume_map.npz"
     )
     assert cfd_mesh_movement_test.MESH_MOTION.volume.mode == "off"
     assert (
@@ -107,7 +101,7 @@ def test_public_drivers_expose_explicit_matching_model_files():
 
     dafoam_files = cfd_mesh_dafoam_analysis.MODEL_FILES
     assert isinstance(dafoam_files, InputFiles)
-    assert dafoam_files.geometry_file.name == "embraer_175_no_winglets.stp"
+    assert dafoam_files.geometry_file.name == "e175.stp"
     assert dafoam_files.surface_mesh_file.name == "e175_openvsp_aircraft_wall.msh"
     assert dafoam_files.volume_mesh_file.name == "e175_euler_volume.msh"
     assert (
@@ -115,9 +109,6 @@ def test_public_drivers_expose_explicit_matching_model_files():
         == "e175_openvsp_aircraft_wall.volume_map.npz"
     )
     assert dafoam_files.geometry_file.is_file()
-    assert dafoam_files.surface_mesh_file.is_file()
-    assert dafoam_files.volume_mesh_file.is_file()
-    assert dafoam_files.volume_wall_map_file.is_file()
 
     dafoam_source = (
         PACKAGE_DIRECTORY / "cfd_mesh_dafoam_analysis.py"
@@ -125,11 +116,13 @@ def test_public_drivers_expose_explicit_matching_model_files():
     assert "mesh_file=input_files.volume_mesh_file" in dafoam_source
     assert "read_gmsh22_volume(input_files.volume_mesh_file)" in dafoam_source
 @pytest.mark.integration
-def test_local_r4_driver_assets_exist_when_available():
-    """Validate the local R4 asset set without requiring it in fresh clones."""
-    from bsm3.core.boundary_surface_movement import cfd_mesh_movement_test
+@pytest.mark.parametrize("driver", ["cfd_mesh_movement_test", "cfd_mesh_dafoam_analysis"])
+def test_driver_mesh_assets_exist_when_available(driver):
+    """Check downloaded or local driver meshes without requiring them in CI."""
+    import importlib
 
-    model_files = cfd_mesh_movement_test.MODEL_FILES
+    module = importlib.import_module(f"bsm3.core.boundary_surface_movement.{driver}")
+    model_files = module.MODEL_FILES
     local_assets = (
         model_files.geometry_file,
         model_files.surface_mesh_file,
@@ -139,7 +132,7 @@ def test_local_r4_driver_assets_exist_when_available():
     missing = [path for path in local_assets if not path.is_file()]
     if missing:
         pytest.skip(
-            "local R4 assets are unavailable: "
+            f"{driver} meshes are unavailable: "
             + ", ".join(path.name for path in missing)
         )
     assert all(path.is_file() for path in local_assets)

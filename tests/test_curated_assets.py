@@ -1,4 +1,8 @@
-"""Validation of the small E175 asset set retained for overhaul examples."""
+"""Validation of the small E175 asset set shipped with the package.
+
+The mixed N-gon ``wall_surface.npz`` is a local-only research asset; its tests
+skip when it is absent.
+"""
 
 import hashlib
 from pathlib import Path
@@ -14,14 +18,11 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIRECTORY = (
     REPOSITORY_ROOT / "bsm3" / "core" / "boundary_surface_movement"
 )
-STEP_FILE = ASSET_DIRECTORY / "embraer_175_no_winglets.stp"
-R1_DIRECTORY = ASSET_DIRECTORY / "fluent_R1_tet_euler_volume_mesh"
-R1_WALL_FILE = R1_DIRECTORY / "e175_fluent_R1_aircraft_wall_tri.msh"
-R1_WALL_MAP_FILE = (
-    R1_DIRECTORY / "e175_fluent_R1_aircraft_wall_tri.volume_map.npz"
-)
+STEP_FILE = ASSET_DIRECTORY / "e175.stp"
+R1_WALL_FILE = ASSET_DIRECTORY / "e175_r1_wall.msh"
+R1_WALL_MAP_FILE = ASSET_DIRECTORY / "e175_r1_wall.volume_map.npz"
 QUAD_PANEL_FILE = (
-    ASSET_DIRECTORY / "embraer_175_panel_quad_dominant_high_quality.msh"
+    ASSET_DIRECTORY / "e175_quad_panel.msh"
 )
 QUAD_PANEL_SHA256 = (
     "92feeeda05905a13d23a18c863e76b9596773beccb021148cc2d4e7016cd733c"
@@ -48,11 +49,14 @@ CURATED_ASSETS = (
     R1_WALL_FILE,
     R1_WALL_MAP_FILE,
     QUAD_PANEL_FILE,
-    MIXED_NGON_FILE,
 )
 requires_curated_assets = pytest.mark.skipif(
     not all(path.is_file() for path in CURATED_ASSETS),
     reason="curated E175 assets are not available in this checkout",
+)
+requires_mixed_ngon = pytest.mark.skipif(
+    not MIXED_NGON_FILE.is_file(),
+    reason="the local-only mixed N-gon wall surface is not available",
 )
 
 
@@ -64,7 +68,7 @@ def test_generic_mesh_import_does_not_dispatch_pickle():
         import_mesh(Path("untrusted.pickle"))
 
 
-@requires_curated_assets
+@requires_mixed_ngon
 def test_curated_wall_surface_is_a_safe_npz_archive():
     """Pin the decoded arrays of the curated wall surface, loaded without pickle."""
     with np.load(MIXED_NGON_FILE, allow_pickle=False) as archive:
@@ -99,7 +103,7 @@ def test_curated_wall_surface_is_a_safe_npz_archive():
     )
 
 
-@requires_curated_assets
+@requires_mixed_ngon
 def test_curated_wall_surface_imports_in_original_face_order():
     """Check generic import preserves face order while grouping blocks by width."""
     mesh = import_mesh(MIXED_NGON_FILE)
@@ -163,6 +167,11 @@ def test_curated_e175_surface_assets_load_with_expected_topology():
     assert quad_panel.cell_blocks["triangle"].shape == (2804, 3)
     assert quad_panel.cell_blocks["quad"].shape == (11858, 4)
 
+
+@pytest.mark.integration
+@requires_mixed_ngon
+def test_curated_mixed_surface_loads_with_expected_topology():
+    """Load the local-only mixed N-gon wall surface."""
     mixed_ngon = import_mesh(MIXED_NGON_FILE)
     assert mixed_ngon.vertices.shape == (79207, 3)
     assert mixed_ngon.cell_blocks["polygon6"].shape == (28190, 6)
@@ -180,6 +189,10 @@ def test_curated_r1_wall_map_matches_the_triangle_wall():
         wall_to_volume = np.asarray(mapping["wall_to_volume"], dtype=np.int64)
         baseline_wall = np.asarray(mapping["baseline_wall_vertices"], dtype=float)
         triangles = np.asarray(mapping["surface_triangles"], dtype=np.int64)
+        stored_paths = (str(mapping["volume_mesh_path"]), str(mapping["wall_mesh_path"]))
+
+    # Published maps name their meshes, not a local checkout path.
+    assert stored_paths == ("e175_r1_volume.msh", "e175_r1_wall.msh")
 
     assert wall_to_volume.shape == (wall.vertices.shape[0],)
     np.testing.assert_allclose(baseline_wall, wall.vertices, atol=0.0)
@@ -187,7 +200,7 @@ def test_curated_r1_wall_map_matches_the_triangle_wall():
 
 
 @pytest.mark.integration
-@requires_curated_assets
+@requires_mixed_ngon
 def test_curated_mixed_surface_has_the_expected_hourglass_mode_count():
     """Assemble, but do not solve, every trusted wall-surface N-gon mode."""
     mixed_ngon = import_mesh(MIXED_NGON_FILE)

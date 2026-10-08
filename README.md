@@ -139,7 +139,8 @@ the standard test suite.
 
 GAMMA is licensed under the GNU Lesser General Public License v3.0 or later.
 
-The Cessna 208 example geometry and surface mesh (`cessna_208.stp` and
-`cessna_208.msh`) are separately licensed under
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); see the
-[C208 asset record](docs/examples/cessna_208/ASSETS.md) for attribution.
+The example geometry and meshes (E175 and Cessna 208) are separately
+licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); see
+the [E175](docs/examples/e175/ASSETS.md) and
+[C208](docs/examples/cessna_208/ASSETS.md) asset records for attribution.
+They are approximate research models, not manufacturer data.

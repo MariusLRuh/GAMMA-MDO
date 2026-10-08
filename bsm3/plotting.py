@@ -25,7 +25,7 @@ DEFAULT_MESH_FILE = (
     Path(__file__).resolve().parent
     / "core"
     / "boundary_surface_movement"
-    / "E175_w_fairing_mesh.msh"
+    / "e175_r1_wall.msh"
 )
 
 

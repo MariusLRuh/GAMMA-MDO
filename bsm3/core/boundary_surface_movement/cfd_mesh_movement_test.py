@@ -17,6 +17,8 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 import csdl_alpha as csdl
+
+from bsm3.assets import asset_path, require
 import numpy as np
 
 from bsm3.core.boundary_surface_movement.geometry_model import GeometryModel
@@ -42,25 +44,16 @@ from bsm3.core.boundary_surface_movement.mesh_motion_pipeline import (
 # 1. Geometry and matching mesh files
 # ---------------------------------------------------------------------------
 ASSET_DIRECTORY = Path(__file__).resolve().parent
-# Rebuilt from ``embraer_175_no_winglets_fluent_mesh.msh`` by
-# ``fluent_to_gmsh_euler_volume.py``: 2.17 M tetrahedra inside a 400 m
-# half-sphere, 87 412 aircraft-wall triangles, converted from millimetres to
-# metres.  The previous mesh was
-# ``quality_first_native_tri_tet_euler_volume_mesh/e175_production_*``.
-FLUENT_MESH_DIRECTORY = ASSET_DIRECTORY / "fluent_R4_tet_euler_volume_mesh"
+# R5 Fluent tetrahedral Euler mesh: about 2.2 M tetrahedra inside a 400 m
+# half-sphere, converted from millimetres to metres, with its 90 387-triangle
+# aircraft wall. Download it once with ``python -m bsm3.assets download e175-r5``.
+R5_ASSETS = ("e175-r5-wall", "e175-r5-wall-map", "e175-r5-volume")
 
 MODEL_FILES = InputFiles(
-    geometry_file=ASSET_DIRECTORY / "embraer_175_no_winglets.stp",
-    surface_mesh_file=(
-        FLUENT_MESH_DIRECTORY / "e175_fluent_R4_aircraft_wall_tri.msh"
-    ),
-    volume_mesh_file=(
-        FLUENT_MESH_DIRECTORY / "e175_fluent_R4_tet_euler_volume.msh"
-    ),
-    volume_wall_map_file=(
-        FLUENT_MESH_DIRECTORY
-        / "e175_fluent_R4_aircraft_wall_tri.volume_map.npz"
-    ),
+    geometry_file=asset_path("e175-geometry"),
+    surface_mesh_file=asset_path("e175-r5-wall"),
+    volume_mesh_file=asset_path("e175-r5-volume"),
+    volume_wall_map_file=asset_path("e175-r5-wall-map"),
     cache_directory=ASSET_DIRECTORY,
 )
 
@@ -174,7 +167,7 @@ def create_geometry_model() -> GeometryModel:
 # ---------------------------------------------------------------------------
 # 3. Surface and volume deformation settings
 # ---------------------------------------------------------------------------
-OUTPUT_DIRECTORY = FLUENT_MESH_DIRECTORY / "deformation_results"
+OUTPUT_DIRECTORY = Path.home() / ".cache" / "gamma" / "e175_r5_deformation_results"
 
 MESH_MOTION = MeshMotion(
     surface=SurfaceMotion(
@@ -241,6 +234,8 @@ def run_deformation_test():
         The pipeline result, including surface and volume coordinates and the
         quality diagnostics gathered during the solve.
     """
+    for name in R5_ASSETS:
+        require(name)
     recorder = csdl.Recorder(inline=True)
     recorder.start()
 

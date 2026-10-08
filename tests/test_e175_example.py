@@ -18,14 +18,10 @@ ADVANCED_EXAMPLE_PATH = (
 ASSET_DIRECTORY = (
     REPOSITORY_ROOT / "bsm3" / "core" / "boundary_surface_movement"
 )
-STEP_FILE = ASSET_DIRECTORY / "embraer_175_no_winglets.stp"
-TRIANGLE_SURFACE_FILE = (
-    ASSET_DIRECTORY
-    / "fluent_R1_tet_euler_volume_mesh"
-    / "e175_fluent_R1_aircraft_wall_tri.msh"
-)
+STEP_FILE = ASSET_DIRECTORY / "e175.stp"
+TRIANGLE_SURFACE_FILE = ASSET_DIRECTORY / "e175_r1_wall.msh"
 QUAD_SURFACE_FILE = (
-    ASSET_DIRECTORY / "embraer_175_panel_quad_dominant_high_quality.msh"
+    ASSET_DIRECTORY / "e175_quad_panel.msh"
 )
 
 requires_assets = pytest.mark.skipif(
@@ -89,7 +85,7 @@ def test_basic_and_advanced_examples_have_distinct_jobs():
     source = EXAMPLE_PATH.read_text(encoding="utf-8")
     advanced = ADVANCED_EXAMPLE_PATH.read_text(encoding="utf-8")
     assert "QUAD_SURFACE_MESH_FILE" not in source
-    assert "embraer_175_panel_quad_dominant_high_quality.msh" in advanced
+    assert "e175_quad_panel.msh" in advanced
     assert "surface_vertex_classification" in advanced
     assert "surface_projection_status" in advanced
     assert source.count("PolygonRegularization(") == 1

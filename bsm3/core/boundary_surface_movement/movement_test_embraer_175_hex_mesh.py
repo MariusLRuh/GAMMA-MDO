@@ -2594,7 +2594,7 @@ if __name__ == "__main__":
 
     
     embraer_175 = lfs.import_file_patched(
-        Path(__file__).with_name("embraer_175_no_winglets.stp"),
+        Path(__file__).with_name("e175.stp"),
         parallelize=False,
     )
     
