@@ -228,8 +228,10 @@ Edit the settings at the top of the script. The default moves the starboard
 wing attachment inboard by 5% of the full CAD span and the fuselage attachment
 aft by 5% of the fuselage-body length, in one load step. The source mesh has
 triangles and quads, so the example uses positive n-gon affine regularization.
-It also preserves the baseline chordwise CAD coordinate near the leading edge
-while allowing spanwise sliding. The built-in interactive viewer is enabled by
+It also holds the baseline chordwise CAD coordinate near the wing leading edge
+(`WING_LEADING_EDGE_HOLD_M`, fading out by `WING_LEADING_EDGE_FADE_M`) while
+allowing spanwise sliding. All four seams (strut-wing, strut-fuselage,
+wing-fuselage and stab-fuselage) are always connected. The built-in interactive viewer is enabled by
 default; set `VISUALIZE = False` for headless runs.
 
 This is one sampled design, not a claim that every combination of offsets is
@@ -246,12 +248,17 @@ negative corner; three already do in the source mesh. The example prints these
 quality figures and highlights the flagged cells in the viewer. A negative
 corner in a recombined quad is distinct from inversion of the whole polygon.
 
-The script reports analytic x-coordinate sensitivities at two selected wing
-vertices for both attachment variables. At the default design, these four
-coordinate/control pairs pass complete-pipeline centred finite differences
-in the example test. The final-mesh coordinate map is piecewise smooth:
-vertices can change CAD projection branches at knots or patch boundaries, so
-a gradient describes the selected branch and must be checked for the design
+The script reports the analytic sensitivity of the mean final mesh node
+(x, y, z) to both attachment variables. Set `CHECK_DERIVATIVES = True` (one
+load step only) to re-run the complete pipeline at each design variable
+plus and minus every step in `DERIVATIVE_CHECK_STEP_SIZES` and compare each
+vector with centred finite differences; the check passes within 0.5% of the
+vector length. The example test runs the same comparison at the default
+design. The final-mesh coordinate
+map is piecewise smooth: projected vertices can jump between nearby
+closest points at CAD crease lines (on the strut and the wing leading edge),
+which scatters whole-mesh finite differences by up to about 0.3%. A gradient
+therefore describes the selected branch and must be checked for the design
 and objective of interest.
 
 Two load steps are available for mesh viewing, with a runtime warning. Their

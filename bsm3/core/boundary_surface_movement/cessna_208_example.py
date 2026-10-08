@@ -24,9 +24,14 @@ from bsm3.preprocessing import create_components, get_projection_metadata
 
 
 ASSET_HASHES = {
-    "cessna208_no_elevator_3.stp": "c22fd7d08f369abf10297dc9ce53727d06c6b771779bd622014723c0831106b9",
-    "cessna208_3_recombine_new.msh": "321b493a18ba0016274c0797a8754613388f09ade58beef0014480a92c1cbeb8",
+    "cessna_208.stp": "c22fd7d08f369abf10297dc9ce53727d06c6b771779bd622014723c0831106b9",
+    "cessna_208.msh": "321b493a18ba0016274c0797a8754613388f09ade58beef0014480a92c1cbeb8",
 }
+# Projection kinks at CAD crease lines (strut, wing leading edge) scatter the
+# whole-mesh finite differences by up to 2.8e-3 of the mean-node gradient
+# length at the default design (h = 1e-3 to 1e-5); this keeps a margin.
+DERIVATIVE_CHECK_TOLERANCE = 5.0e-3
+
 
 def _section_area_centroid(function, row_index):
     """Calculate a C208 strut end-section centroid from its CAD spline."""
@@ -108,8 +113,13 @@ def _two_row_strut_map(*, fractions, baseline, fuselage_centroid,
 
 def _wing_projection_metadata(*, component, vertex_ids,
                               initial_parametric_coordinates, initial_vertices,
-                              nose_core_m, nose_fade_m):
-    """Restore baseline chordwise position near the nose with a smooth taper."""
+                              leading_edge_hold_m, leading_edge_fade_m):
+    """Hold the baseline chordwise position near the wing leading edge.
+
+    Within ``leading_edge_hold_m`` of the local leading edge, a vertex keeps its
+    baseline chordwise CAD coordinate; the hold fades linearly to zero at
+    ``leading_edge_fade_m``. Spanwise sliding is unaffected.
+    """
     ids = np.asarray(vertex_ids, dtype=np.int64)
     xyz = np.asarray(initial_vertices, dtype=float)
     parent = np.asarray(initial_parametric_coordinates, dtype=float)
@@ -123,7 +133,12 @@ def _wing_projection_metadata(*, component, vertex_ids,
             distance[strip] = np.minimum(
                 distance[strip], xyz[strip, 0] - np.min(xyz[strip, 0])
             )
-    weight = np.clip((nose_fade_m - distance) / (nose_fade_m - nose_core_m), 0., 1.)
+    weight = np.clip(
+        (leading_edge_fade_m - distance)
+        / (leading_edge_fade_m - leading_edge_hold_m),
+        0.,
+        1.,
+    )
     band = ids[weight[ids] > 0.]
     other = ids[weight[ids] == 0.]
     groups = []
@@ -132,7 +147,7 @@ def _wing_projection_metadata(*, component, vertex_ids,
             component=component, vertices=xyz[band], vertex_ids=band,
             para_coords=parent, allowed_patch_ids=patch_ids,
             chordwise_reference=parent[band, 2],
-            chordwise_restore_weight=weight[band], name="wing_nose_taper",
+            chordwise_restore_weight=weight[band], name="wing_leading_edge_hold",
         ))
     if other.size:
         groups.append(get_projection_metadata(
@@ -213,27 +228,95 @@ def _validate_load_steps(load_steps):
         )
 
 
-def _sensitivity_report(result, controls, load_steps, vertex_ids):
-    """Differentiate two fixed wing-vertex x coordinates at one load step."""
+def _validate_derivative_check(*, load_steps, enabled, step_sizes):
+    """Allow the finite-difference check only where gradients are reported."""
+    if not enabled:
+        return
+    if load_steps != 1:
+        raise ValueError(
+            "The derivative check runs at one load step only; two-step "
+            "gradients are known to disagree with finite differences."
+        )
+    if not step_sizes or any(not np.isfinite(h) or h <= 0.0 for h in step_sizes):
+        raise ValueError("Derivative-check step sizes must be positive and finite.")
+
+
+def _derivative_check(result, controls, analytic, *, recorder, step_sizes):
+    """Compare mean-node gradients with centred finite differences.
+
+    Each control is perturbed by +/- h and the complete recorded pipeline is
+    re-executed. The baseline design is restored before returning.
+    """
+    coordinates = result.surface_coordinates
+    checks = {}
+    try:
+        for name, control in controls.items():
+            baseline = np.asarray(control.value).copy()
+            expected = np.asarray(analytic[name], dtype=float)
+            checks[name] = {}
+            try:
+                for step in step_sizes:
+                    control.value = baseline + step
+                    recorder.execute()
+                    plus = np.asarray(coordinates.value).mean(axis=0)
+                    control.value = baseline - step
+                    recorder.execute()
+                    minus = np.asarray(coordinates.value).mean(axis=0)
+                    finite_difference = (plus - minus) / (2.0 * step)
+                    checks[name][f"{step:g}"] = {
+                        "finite_difference": finite_difference.tolist(),
+                        "relative_error": float(
+                            np.linalg.norm(expected - finite_difference)
+                            / np.linalg.norm(finite_difference)
+                        ),
+                    }
+            finally:
+                control.value = baseline
+    finally:
+        recorder.execute()
+    passed = all(
+        entry["relative_error"] <= DERIVATIVE_CHECK_TOLERANCE
+        for entries in checks.values() for entry in entries.values()
+    )
+    print("\n=== Mean-node derivative check (centred finite differences) ===")
+    print("  relative error = |analytic - FD| / |FD| over the (x, y, z) vector")
+    for name, entries in checks.items():
+        for step, entry in entries.items():
+            print(f"  {name:<32s} h={step:<7s} {entry['relative_error']:.2e}")
+    print(
+        f"  {'PASS' if passed else 'FAIL'} "
+        f"(tolerance {DERIVATIVE_CHECK_TOLERANCE:.0e})\n",
+        flush=True,
+    )
+    return {
+        "objective": "mean final mesh node (x, y, z)",
+        "tolerance": DERIVATIVE_CHECK_TOLERANCE,
+        "passed": passed,
+        "results": checks,
+    }
+
+
+def _sensitivity_report(result, controls, load_steps):
+    """Differentiate the mean final mesh node (x, y, z) at one load step."""
     if load_steps != 1:
         return {
             "status": "two-step mesh gradients disagree with finite differences; do not use for optimization",
         }
-    gradients = {}
-    for vertex_id in vertex_ids:
+    num_vertices = result.initial_surface_coordinates.shape[0]
+    gradients = {name: [] for name in controls}
+    for axis in range(3):
         weights = np.zeros_like(result.initial_surface_coordinates)
-        weights[vertex_id, 0] = 1.0
+        weights[:, axis] = 1.0 / num_vertices
         objective = csdl.sum(result.surface_coordinates * weights)
-        gradients[str(vertex_id)] = {
-            name: float(np.asarray(csdl.derivative(objective, control).value).reshape(-1)[0])
-            for name, control in controls.items()
-        }
+        for name, control in controls.items():
+            gradients[name].append(float(
+                np.asarray(csdl.derivative(objective, control).value).reshape(-1)[0]
+            ))
     return {
-        "status": "analytic one-step mesh-coordinate sensitivities",
+        "status": "analytic one-step mean-node sensitivities",
         "units": "metres per unit attachment fraction",
-        "x_coordinate_gradients": gradients,
+        "mean_node_xyz_gradients": gradients,
     }
-
 
 
 @dataclass(frozen=True)
@@ -258,10 +341,14 @@ class _PreparedCase:
 
 
 @contextmanager
-def _prepare_case(*, step_file, mesh_file, output_directory, settings,
-                  connection_drivers):
+def _prepare_case(*, step_file, mesh_file, output_directory, settings):
     """Verify assets, start CSDL, and measure the baseline attachments."""
     _validate_load_steps(settings["load_steps"])
+    _validate_derivative_check(
+        load_steps=settings["load_steps"],
+        enabled=settings["check_derivatives"],
+        step_sizes=settings["derivative_check_step_sizes"],
+    )
     if settings["ngon_regularization_weight"] <= 0.0:
         raise ValueError(
             "The C208 mixed-cell example requires positive n-gon regularization."
@@ -271,11 +358,6 @@ def _prepare_case(*, step_file, mesh_file, output_directory, settings,
             raise FileNotFoundError(asset)
         if hashlib.sha256(asset.read_bytes()).hexdigest() != ASSET_HASHES[asset.name]:
             raise ValueError(f"C208 input asset changed: {asset.name}")
-    connections = settings["additional_connections"]
-    if len(set(connections)) != len(connections):
-        raise ValueError("Additional connection names must be unique.")
-    if unknown := set(connections) - connection_drivers.keys():
-        raise ValueError(f"Unknown additional connections: {sorted(unknown)}")
 
     settings_hash = hashlib.sha256(
         json.dumps(settings, sort_keys=True).encode("utf-8")
@@ -337,19 +419,25 @@ def _prepare_case(*, step_file, mesh_file, output_directory, settings,
         recorder.stop()
 
 
-def _finish_case(case, result, *, controls, sensitivity_vertex_ids):
-    """Validate final seams and save the same C208 report as the driver."""
+def _finish_case(case, result, *, controls):
+    """Validate final seams, then save and print the C208 result report."""
     seam_summary = _seam_residual_summary(result, case.components)
     _check_final_seams(
         seam_summary,
         failure_file=case.output_directory / f"{case.stem}.invalid.json",
     )
-    sensitivity = _sensitivity_report(
-        result, controls, case.settings["load_steps"], sensitivity_vertex_ids,
-    )
+    sensitivity = _sensitivity_report(result, controls, case.settings["load_steps"])
+    derivative_check = None
+    if case.settings["check_derivatives"]:
+        derivative_check = _derivative_check(
+            result, controls, sensitivity["mean_node_xyz_gradients"],
+            recorder=case.recorder,
+            step_sizes=case.settings["derivative_check_step_sizes"],
+        )
     report = {
         "intersections_valid": True,
         "sensitivity": sensitivity,
+        "derivative_check": derivative_check,
         "settings": case.settings,
         "final_seams": seam_summary,
         "elapsed_seconds": time.monotonic() - case.started_at,

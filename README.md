@@ -75,11 +75,11 @@ python examples/cessna_208_strut_attachment_deformation.py
 
 The STEP and mesh inputs ship with GAMMA. Edit the settings at the top of the
 script; it has no CLI and opens the built-in mesh viewer by default. The
-one-step default prints analytic sensitivities for two selected wing-vertex
-coordinates. The example test compares those four coordinate/control pairs
-with complete-pipeline finite differences at the default design. Two load
-steps are available for mesh viewing only: their gradients disagree with
-finite differences and must not be used for optimization. See the
+one-step default prints the analytic sensitivity of the mean final mesh node
+(x, y, z) to each attachment variable. Set `CHECK_DERIVATIVES = True` to
+compare it with complete-pipeline centred finite differences in the same run.
+Two load steps are available for mesh viewing only: their gradients disagree
+with finite differences and must not be used for optimization. See the
 [example details](docs/src/examples.md#cessna-208-strut-attachment-deformation).
 
 ## Documentation
@@ -138,3 +138,8 @@ the standard test suite.
 ## License
 
 GAMMA is licensed under the GNU Lesser General Public License v3.0 or later.
+
+The Cessna 208 example geometry and surface mesh (`cessna_208.stp` and
+`cessna_208.msh`) are separately licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); see the
+[C208 asset record](docs/examples/cessna_208/ASSETS.md) for attribution.

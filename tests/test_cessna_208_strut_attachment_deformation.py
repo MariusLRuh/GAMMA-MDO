@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from types import SimpleNamespace
 
 import csdl_alpha as csdl
 import numpy as np
@@ -67,6 +68,54 @@ def test_two_step_mode_warns_that_gradients_must_not_be_used():
         support._validate_load_steps(2)
 
 
+def test_derivative_check_is_limited_to_one_load_step():
+    """Reject checks where the example reports no analytic gradient."""
+    support._validate_derivative_check(load_steps=2, enabled=False, step_sizes=())
+    support._validate_derivative_check(load_steps=1, enabled=True, step_sizes=(1e-5,))
+    with pytest.raises(ValueError, match="one load step"):
+        support._validate_derivative_check(
+            load_steps=2, enabled=True, step_sizes=(1e-5,),
+        )
+    for step_sizes in ((), (0.0,), (-1e-5,), (float("nan"),)):
+        with pytest.raises(ValueError, match="positive and finite"):
+            support._validate_derivative_check(
+                load_steps=1, enabled=True, step_sizes=step_sizes,
+            )
+
+
+def test_derivative_check_compares_mean_node_gradients_and_restores(capsys):
+    """Check the FD comparison on a smooth recorded toy mesh map."""
+    recorder = csdl.Recorder(inline=True)
+    recorder.start()
+    try:
+        control = csdl.Variable(value=np.array([0.3]), name="control")
+        base = np.arange(12.0).reshape(4, 3)
+        coordinates = (
+            csdl.expand(control, (4, 3)) * base
+            + csdl.expand(control * control, (4, 3))
+        )
+        baseline = np.asarray(coordinates.value).copy()
+        result = SimpleNamespace(surface_coordinates=coordinates)
+        exact = (base.mean(axis=0) + 2 * 0.3).tolist()
+        check = support._derivative_check(
+            result, {"control": control}, {"control": exact},
+            recorder=recorder, step_sizes=(1e-4, 1e-5),
+        )
+        assert check["passed"] is True
+        for entry in check["results"]["control"].values():
+            assert entry["relative_error"] < 1e-8
+        np.testing.assert_array_equal(control.value, [0.3])
+        np.testing.assert_array_equal(coordinates.value, baseline)
+        wrong = support._derivative_check(
+            result, {"control": control}, {"control": [0.0, 0.0, 0.0]},
+            recorder=recorder, step_sizes=(1e-5,),
+        )
+        assert wrong["passed"] is False
+    finally:
+        recorder.stop()
+    assert "PASS" in capsys.readouterr().out
+
+
 def test_invalid_final_seams_write_only_an_invalid_diagnostic(tmp_path):
     """Prevent an invalid seam from leaving a normal-looking result file."""
     bad = {
@@ -120,30 +169,50 @@ def test_default_c208_example_preserves_seams_and_polygon_normals(
         assert seam["max_abs_host_sdf_m"] <= 1e-8
 
     assert report["settings"]["load_steps"] == 1
-    gradients = report["sensitivity"]["x_coordinate_gradients"]
-    assert set(gradients) == {"8115", "5000"}
+    mean_gradients = report["sensitivity"]["mean_node_xyz_gradients"]
+    names = ("wing_attachment_span_fraction", "fuselage_attachment_x_fraction")
+    assert set(mean_gradients) == set(names)
+    # Two smooth wing vertices give a tight pointwise check of the derivative
+    # path; the printed mean-node gradient is the holistic check.
+    vertices = [8115, 5000]
     recorder = result.recorder
     recorder.start()
     try:
         controls = result.geometry._design_variables
-        for name in (
-            "wing_attachment_span_fraction",
-            "fuselage_attachment_x_fraction",
-        ):
+        pointwise = {}
+        for vertex in vertices:
+            weights = np.zeros(result.initial_surface_coordinates.shape)
+            weights[vertex, 0] = 1.0
+            objective = csdl.sum(result.surface_coordinates * weights)
+            for name in names:
+                pointwise[vertex, name] = float(np.asarray(
+                    csdl.derivative(objective, controls[name]).value
+                ).reshape(-1)[0])
+        for name in names:
             control = controls[name]
             baseline = np.asarray(control.value).copy()
             step = 1e-5
             control.value = baseline + step
             recorder.execute()
-            plus = np.asarray(result.surface_coordinates.value)[[8115, 5000], 0].copy()
+            plus = np.asarray(result.surface_coordinates.value).copy()
             control.value = baseline - step
             recorder.execute()
-            minus = np.asarray(result.surface_coordinates.value)[[8115, 5000], 0].copy()
+            minus = np.asarray(result.surface_coordinates.value).copy()
             control.value = baseline
+            recorder.execute()
             finite_difference = (plus - minus) / (2 * step)
-            analytic = np.array([gradients[str(i)][name] for i in (8115, 5000)])
             np.testing.assert_allclose(
-                analytic, finite_difference, atol=1e-6, rtol=1e-5,
+                [pointwise[vertex, name] for vertex in vertices],
+                finite_difference[vertices, 0],
+                atol=1e-6, rtol=1e-5,
+            )
+            # Projection kinks at CAD crease lines (strut, wing leading edge)
+            # scatter the whole-mesh FD by up to 2.8e-3 of the vector length
+            # at h in {1e-3, 1e-4, 1e-5}; 5e-3 keeps a margin above that.
+            analytic_mean = np.asarray(mean_gradients[name])
+            fd_mean = finite_difference.mean(axis=0)
+            assert np.linalg.norm(analytic_mean - fd_mean) <= (
+                5e-3 * np.linalg.norm(fd_mean)
             )
     finally:
         recorder.stop()

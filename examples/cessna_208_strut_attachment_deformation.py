@@ -26,8 +26,8 @@ ASSETS = ROOT / "bsm3/core/boundary_surface_movement"
 
 # SETTINGS — edit these values; run this script without command-line arguments.
 # 1. Geometry, surface mesh, and output. The helper verifies both input hashes.
-STEP_FILE = ASSETS / "cessna208_no_elevator_3.stp"
-MESH_FILE = ASSETS / "cessna208_3_recombine_new.msh"
+STEP_FILE = ASSETS / "cessna_208.stp"
+MESH_FILE = ASSETS / "cessna_208.msh"
 OUT = Path.home() / ".cache/gamma/cessna_208"
 
 # 2. Geometry design point.
@@ -40,7 +40,7 @@ WING_ATTACHMENT_DELTA_FRACTION = -0.05
 FUSELAGE_ATTACHMENT_DELTA_FRACTION = +0.05
 LOAD_STEPS = 1  # Two-step gradients disagree with finite differences; view only.
 
-# 3. Mesh regions and component intersections.
+# 3. Mesh regions.
 # Free vertices move through the graph solve. Others follow the CAD parameter
 # positions. None frees the entire component. "abs" means |y|/max(|y|);
 # "extent" means (x-min x)/(max x-min x). Lower bound included, upper excluded.
@@ -48,9 +48,6 @@ WING_FREE_REGION = {"y": (0.10, 0.90, "abs")}
 FUSELAGE_FREE_REGION = {"x": (0.05, 0.95, "extent")}
 # True lets non-seam strut vertices redistribute through the graph solve.
 STRUT_VERTICES_FREE = True
-
-# The two strut seams always run. C208 has no Verts-Full component.
-ADDITIONAL_CONNECTIONS = ("wing_fuselage", "stab_fuselage")
 
 # 4. Mesh-motion and projection settings.
 # Inverse-cell-area graph weight exponent; larger makes small cells stiffer.
@@ -65,19 +62,25 @@ DISTANCE_BETA = 0.5
 DISTANCE_LENGTH_SCALE_M = 0.5  # Metres; 10 ft would be 3.048 m.
 DISTANCE_DECAY = "exp"
 VISUALIZE = True  # Built-in viewer shows flagged elements in red.
-# Restore each nose vertex's original chordwise CAD coordinate over the first
-# 8 cm behind the leading edge, then fade the restore to zero by 16 cm.
-NOSE_CORE_M = 0.08
-NOSE_FADE_M = 0.16
+# Wing vertices within the hold distance of the local leading edge keep their
+# original chordwise CAD position (they still slide spanwise). The hold fades
+# linearly to zero at the fade distance. Without the hold, leading-edge cells
+# can be squeezed chordwise.
+WING_LEADING_EDGE_HOLD_M = 0.08
+WING_LEADING_EDGE_FADE_M = 0.16
 
-# 5. Report two representative wing-vertex sensitivities at one load step.
-SENSITIVITY_VERTEX_IDS = (8115, 5000)
+# 5. Derivative check (one load step only).
+# The script always prints the analytic sensitivity of the mean final mesh node
+# (x, y, z) to each design variable. True also re-runs the complete pipeline
+# at design +/- h and compares those vectors with centred finite differences.
+# Each step size adds four pipeline re-executions.
+CHECK_DERIVATIVES = False
+DERIVATIVE_CHECK_STEP_SIZES = (1.0e-4, 1.0e-5)
 # END SETTINGS
 
-EMPTY_FREE_REGION = {"x": (0.0, 0.0, "extent")}
-ADDITIONAL_CONNECTION_DRIVERS = {
-    "wing_fuselage": "wing", "stab_fuselage": "stab",
-}
+# A zero-width range selects no vertices: the component follows its CAD
+# parameter positions. (None or {} would instead free the whole component.)
+NO_FREE_VERTICES = {"x": (0.0, 0.0, "extent")}
 
 
 def main():
@@ -98,7 +101,6 @@ def main():
         "wing_free_region": WING_FREE_REGION,
         "fuselage_free_region": FUSELAGE_FREE_REGION,
         "strut_vertices_free": STRUT_VERTICES_FREE,
-        "additional_connections": ADDITIONAL_CONNECTIONS,
         "stiffening_exponent": STIFFENING_EXPONENT,
         "ngon_regularization_weight": NGON_REGULARIZATION_WEIGHT,
         "distance_weighting_enabled": DISTANCE_WEIGHTING_ENABLED,
@@ -106,9 +108,11 @@ def main():
         "distance_length_scale_m": DISTANCE_LENGTH_SCALE_M,
         "symmetry_half_mesh": False,
         "distance_decay": DISTANCE_DECAY,
-        "nose_core_m": NOSE_CORE_M,
-        "nose_fade_m": NOSE_FADE_M,
+        "wing_leading_edge_hold_m": WING_LEADING_EDGE_HOLD_M,
+        "wing_leading_edge_fade_m": WING_LEADING_EDGE_FADE_M,
         "visualize": VISUALIZE,
+        "check_derivatives": CHECK_DERIVATIVES,
+        "derivative_check_step_sizes": DERIVATIVE_CHECK_STEP_SIZES,
     }
     # Prepare the verified C208 assets and baseline attachment geometry.
     with _prepare_case(
@@ -116,7 +120,6 @@ def main():
         mesh_file=MESH_FILE,
         output_directory=OUT,
         settings=settings,
-        connection_drivers=ADDITIONAL_CONNECTION_DRIVERS,
     ) as case:
         _, wing, fuselage, stab = case.components
 
@@ -144,12 +147,12 @@ def main():
         )
         geometry.add_component(
             name="strut", search_name="Struts", deformed_coefficients=target,
-            free_region=None if STRUT_VERTICES_FREE else EMPTY_FREE_REGION,
+            free_region=None if STRUT_VERTICES_FREE else NO_FREE_VERTICES,
         )
         for name, search_name, component, region in (
             ("wing", "MainWing", wing, WING_FREE_REGION),
             ("fuselage", "FuselageGeom", fuselage, FUSELAGE_FREE_REGION),
-            ("stab", "Stab", stab, EMPTY_FREE_REGION),
+            ("stab", "Stab", stab, NO_FREE_VERTICES),
         ):
             geometry.add_component(
                 name=name,
@@ -159,12 +162,14 @@ def main():
                 projection_metadata_builder=(
                     partial(
                         _wing_projection_metadata,
-                        nose_core_m=NOSE_CORE_M,
-                        nose_fade_m=NOSE_FADE_M,
+                        leading_edge_hold_m=WING_LEADING_EDGE_HOLD_M,
+                        leading_edge_fade_m=WING_LEADING_EDGE_FADE_M,
                     ) if name == "wing" else None
                 ),
             )
-        # Follow the strut and fixed-component intersection seams.
+        # Keep every seam vertex on its intersection curve. The strut seams
+        # move with the strut; the wing-root and stab-root seams stay on the
+        # fixed junctions while the surrounding fuselage mesh slides.
         geometry.connect(
             name="strut_wing", driving_component="strut",
             query_component="wing", search_direction="u",
@@ -173,11 +178,14 @@ def main():
             name="strut_fuselage", driving_component="strut",
             query_component="fuselage", search_direction="u",
         )
-        for connection in ADDITIONAL_CONNECTIONS:
-            geometry.connect(
-                name=connection, driving_component=ADDITIONAL_CONNECTION_DRIVERS[connection],
-                query_component="fuselage", search_direction="u",
-            )
+        geometry.connect(
+            name="wing_fuselage", driving_component="wing",
+            query_component="fuselage", search_direction="u",
+        )
+        geometry.connect(
+            name="stab_fuselage", driving_component="stab",
+            query_component="fuselage", search_direction="u",
+        )
 
         # Move the triangle/quad mesh while keeping the host CAD fixed.
         motion = mm.MeshMotion(
@@ -211,14 +219,15 @@ def main():
             motion=motion,
             recorder=case.recorder,
         )
-        # Validate final seams and report mesh quality and sensitivities.
+        # Validate final seams; report mesh quality and the mean-node
+        # sensitivity to each design variable (one load step only), plus the
+        # optional finite-difference derivative check.
         _finish_case(
             case, result,
             controls={
                 "wing_attachment_span_fraction": wing_control,
                 "fuselage_attachment_x_fraction": fuselage_control,
             },
-            sensitivity_vertex_ids=SENSITIVITY_VERTEX_IDS,
         )
         return result
 

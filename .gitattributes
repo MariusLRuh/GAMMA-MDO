@@ -1,2 +1,2 @@
-bsm3/core/boundary_surface_movement/cessna208_no_elevator_3.stp -diff
-bsm3/core/boundary_surface_movement/cessna208_3_recombine_new.msh -diff
+bsm3/core/boundary_surface_movement/cessna_208.stp -diff
+bsm3/core/boundary_surface_movement/cessna_208.msh -diff
