@@ -11,7 +11,7 @@ orphan: true
 
 **License.** Both files are licensed under the
 [Creative Commons Attribution 4.0 International license (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/),
-with the consent of their authors. This license covers these two files only;
+with the written consent of their authors. This license covers these two files only;
 GAMMA's source code remains under the GNU LGPL v3.0 or later.
 
 **Attribution.** "Cessna 208 STEP geometry" by Anugrah Joshy and "Cessna 208
