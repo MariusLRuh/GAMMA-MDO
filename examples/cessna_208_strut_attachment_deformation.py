@@ -11,9 +11,9 @@ from pathlib import Path
 
 import csdl_alpha as csdl
 
-import bsm3.mesh_motion as mm
-from bsm3.core.boundary_surface_movement import stack_component_coefficients_numpy
-from bsm3.core.boundary_surface_movement.cessna_208_example import (
+import gamma_mdo.mesh_motion as mm
+from gamma_mdo.core.boundary_surface_movement import stack_component_coefficients_numpy
+from gamma_mdo.core.boundary_surface_movement.cessna_208_example import (
     _finish_case,
     _prepare_case,
     _two_row_strut_map,
@@ -22,7 +22,7 @@ from bsm3.core.boundary_surface_movement.cessna_208_example import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ASSETS = ROOT / "bsm3/core/boundary_surface_movement"
+ASSETS = ROOT / "gamma_mdo/core/boundary_surface_movement"
 
 # SETTINGS — edit these values; run this script without command-line arguments.
 # 1. Geometry, surface mesh, and output. The helper verifies both input hashes.

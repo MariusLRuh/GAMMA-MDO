@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import csdl_alpha as csdl
 import pytest
 
-from bsm3.core.boundary_surface_movement.mesh_motion_config import (
+from gamma_mdo.core.boundary_surface_movement.mesh_motion_config import (
     InputFiles,
     PolygonRegularization,
     MeshMotion,
@@ -17,7 +17,7 @@ from bsm3.core.boundary_surface_movement.mesh_motion_config import (
 
 PACKAGE_DIRECTORY = (
     Path(__file__).resolve().parents[1]
-    / "bsm3"
+    / "gamma_mdo"
     / "core"
     / "boundary_surface_movement"
 )
@@ -50,7 +50,7 @@ def test_default_mesh_motion_is_surface_only_and_headless():
 
 
 def test_public_driver_exposes_explicit_matching_model_files():
-    from bsm3.core.boundary_surface_movement import cfd_mesh_movement_test
+    from gamma_mdo.core.boundary_surface_movement import cfd_mesh_movement_test
 
     movement_files = cfd_mesh_movement_test.MODEL_FILES
     assert isinstance(movement_files, InputFiles)
@@ -71,7 +71,7 @@ def test_public_driver_exposes_explicit_matching_model_files():
 @pytest.mark.integration
 def test_driver_mesh_assets_exist_when_available():
     """Check the downloaded R5 driver meshes without requiring them in CI."""
-    from bsm3.core.boundary_surface_movement import cfd_mesh_movement_test
+    from gamma_mdo.core.boundary_surface_movement import cfd_mesh_movement_test
 
     model_files = cfd_mesh_movement_test.MODEL_FILES
     local_assets = (

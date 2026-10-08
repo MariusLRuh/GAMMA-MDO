@@ -6,11 +6,11 @@ import sys
 import numpy as np
 import pytest
 
-import bsm3
-from bsm3 import plotting, preprocessing
+import gamma_mdo
+from gamma_mdo import plotting, preprocessing
 
 
-ASSET_DIR = Path("bsm3/core/boundary_surface_movement")
+ASSET_DIR = Path("gamma_mdo/core/boundary_surface_movement")
 E175_STEP = ASSET_DIR / "e175.stp"
 E175_MESH = ASSET_DIR / "e175_r1_wall.msh"
 E175_FIRST_VERTEX = [18.289553605559405, 11.9144025401861, 1.393874452294162]
@@ -82,7 +82,7 @@ def test_create_components_selects_by_search_names_and_keys():
         space="fake-space",
     )
 
-    wing, htail, fairing = bsm3.preprocessing.create_components(
+    wing, htail, fairing = gamma_mdo.preprocessing.create_components(
         keys=[None, [3], None],
         search_names=[("wing", "lifting_surface"), "ignored", ("fairing", "underbelly")],
         geometry=geometry,
@@ -113,7 +113,7 @@ def test_create_components_flat_keys_replace_manual_function_set_construction(mo
         }
     )
 
-    component = bsm3.preprocessing.create_components(
+    component = gamma_mdo.preprocessing.create_components(
         keys=np.arange(0, 2),
         geometry=geometry,
     )
@@ -132,7 +132,7 @@ def test_create_components_single_search_name_returns_single_component():
         }
     )
 
-    component = bsm3.preprocessing.create_components(
+    component = gamma_mdo.preprocessing.create_components(
         search_names="wing",
         geometry=geometry,
     )
@@ -153,7 +153,7 @@ def test_create_components_matches_component_aliases_from_step_surface_names():
         }
     )
 
-    fuselage, fairing, horizontal_tail = bsm3.preprocessing.create_components(
+    fuselage, fairing, horizontal_tail = gamma_mdo.preprocessing.create_components(
         search_names=["fuselage", "fairing", "horizontal_tail"],
         geometry=geometry,
     )
@@ -175,7 +175,7 @@ def test_create_components_reports_available_options_for_bad_search_name():
     )
 
     with pytest.raises(ValueError, match="Available components") as exc_info:
-        bsm3.preprocessing.create_components(search_names=["canard"], geometry=geometry)
+        gamma_mdo.preprocessing.create_components(search_names=["canard"], geometry=geometry)
 
     message = str(exc_info.value)
     assert "Fuselage (keys 0-1" in message
@@ -186,7 +186,7 @@ def test_create_components_reports_available_options_for_bad_search_name():
 
 
 def test_import_mesh_reads_e175_msh_arrays():
-    mesh = bsm3.preprocessing.import_mesh(E175_MESH)
+    mesh = gamma_mdo.preprocessing.import_mesh(E175_MESH)
 
     assert mesh.vertices.shape == (16400, 3)
     assert mesh.connectivity.shape == (32522, 3)
@@ -223,7 +223,7 @@ endsolid square
         encoding="utf8",
     )
 
-    mesh = bsm3.preprocessing.read_mesh(stl_path)
+    mesh = gamma_mdo.preprocessing.read_mesh(stl_path)
 
     assert mesh.vertices.shape == (4, 3)
     assert mesh.connectivity.shape == (2, 3)
@@ -246,11 +246,11 @@ def test_import_mesh_rejects_unsupported_format(tmp_path):
     mesh_path.write_text("", encoding="utf8")
 
     with pytest.raises(ValueError, match="Unsupported mesh format"):
-        bsm3.preprocessing.import_mesh(mesh_path)
+        gamma_mdo.preprocessing.import_mesh(mesh_path)
 
 
 def test_create_symmetric_mesh_mirrors_half_mesh_across_xz_plane():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray(
             [
                 [0.0, 0.0, 0.0],
@@ -264,7 +264,7 @@ def test_create_symmetric_mesh_mirrors_half_mesh_across_xz_plane():
         cell_blocks={"triangle": np.asarray([[0, 2, 1], [1, 2, 3]], dtype=np.int64)},
     )
 
-    symmetric_mesh = bsm3.preprocessing.create_symmetric_mesh(mesh)
+    symmetric_mesh = gamma_mdo.preprocessing.create_symmetric_mesh(mesh)
 
     assert symmetric_mesh.vertices.shape == (6, 3)
     assert symmetric_mesh.cell_blocks["triangle"].shape == (4, 3)
@@ -279,7 +279,7 @@ def test_create_symmetric_mesh_mirrors_half_mesh_across_xz_plane():
 
 
 def test_create_symmetric_mesh_can_save_msh(tmp_path):
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray(
             [
                 [0.0, 0.0, 0.0],
@@ -294,12 +294,12 @@ def test_create_symmetric_mesh_can_save_msh(tmp_path):
     )
     mesh_path = tmp_path / "quad_dominant_mesh.msh"
 
-    symmetric_mesh = bsm3.preprocessing.create_symmetric_mesh(
+    symmetric_mesh = gamma_mdo.preprocessing.create_symmetric_mesh(
         mesh,
         convert_to_quad_dominant=True,
         save_as=mesh_path,
     )
-    saved_mesh = bsm3.preprocessing.import_mesh(mesh_path)
+    saved_mesh = gamma_mdo.preprocessing.import_mesh(mesh_path)
 
     assert mesh_path.is_file()
     np.testing.assert_allclose(saved_mesh.vertices, symmetric_mesh.vertices)
@@ -307,7 +307,7 @@ def test_create_symmetric_mesh_can_save_msh(tmp_path):
 
 
 def test_export_mesh_rejects_unsupported_format(tmp_path):
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray([[0.0, 0.0, 0.0]]),
         connectivity=np.empty((0, 0), dtype=np.int64),
         cell_types=np.empty((0,), dtype=object),
@@ -315,11 +315,11 @@ def test_export_mesh_rejects_unsupported_format(tmp_path):
     )
 
     with pytest.raises(ValueError, match="Unsupported export mesh format"):
-        bsm3.preprocessing.export_mesh(mesh, tmp_path / "mesh.obj")
+        gamma_mdo.preprocessing.export_mesh(mesh, tmp_path / "mesh.obj")
 
 
 def test_create_symmetric_mesh_selects_dominant_side_from_full_mesh():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray(
             [
                 [0.0, 0.0, 0.0],
@@ -335,7 +335,7 @@ def test_create_symmetric_mesh_selects_dominant_side_from_full_mesh():
         cell_blocks={"triangle": np.asarray([[0, 2, 1], [1, 2, 3], [0, 1, 4]], dtype=np.int64)},
     )
 
-    symmetric_mesh = bsm3.preprocessing.create_symmetric_mesh(mesh)
+    symmetric_mesh = gamma_mdo.preprocessing.create_symmetric_mesh(mesh)
 
     assert symmetric_mesh.metadata["symmetry_selected_side"] == "positive"
     assert symmetric_mesh.cell_blocks["triangle"].shape == (4, 3)
@@ -343,7 +343,7 @@ def test_create_symmetric_mesh_selects_dominant_side_from_full_mesh():
 
 
 def test_create_symmetric_mesh_can_make_limited_quad_dominant_mesh():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray(
             [
                 [0.0, 0.0, 0.0],
@@ -357,7 +357,7 @@ def test_create_symmetric_mesh_can_make_limited_quad_dominant_mesh():
         cell_blocks={"triangle": np.asarray([[0, 2, 1], [1, 2, 3]], dtype=np.int64)},
     )
 
-    symmetric_mesh = bsm3.preprocessing.create_symmetric_mesh(
+    symmetric_mesh = gamma_mdo.preprocessing.create_symmetric_mesh(
         mesh,
         convert_to_quad_dominant=True,
         num_quads=1,
@@ -375,7 +375,7 @@ def test_create_symmetric_mesh_can_make_limited_quad_dominant_mesh():
 
 
 def test_create_symmetric_mesh_quality_gates_control_quad_candidates():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray(
             [
                 [0.0, 0.0, 0.0],
@@ -389,11 +389,11 @@ def test_create_symmetric_mesh_quality_gates_control_quad_candidates():
         cell_blocks={"triangle": np.asarray([[0, 2, 1], [1, 2, 3]], dtype=np.int64)},
     )
 
-    conservative_mesh = bsm3.preprocessing.create_symmetric_mesh(
+    conservative_mesh = gamma_mdo.preprocessing.create_symmetric_mesh(
         mesh,
         convert_to_quad_dominant=True,
     )
-    aggressive_mesh = bsm3.preprocessing.create_symmetric_mesh(
+    aggressive_mesh = gamma_mdo.preprocessing.create_symmetric_mesh(
         mesh,
         convert_to_quad_dominant=True,
         quality_gates="aggressive",
@@ -405,18 +405,18 @@ def test_create_symmetric_mesh_quality_gates_control_quad_candidates():
 
 
 def test_quad_quality_gates_support_overrides():
-    gates = bsm3.preprocessing.quad_quality_gates(
+    gates = gamma_mdo.preprocessing.quad_quality_gates(
         min_angle_deg=25.0,
         max_quality_score=0.4,
     )
 
-    assert isinstance(gates, bsm3.preprocessing.QuadQualityGates)
+    assert isinstance(gates, gamma_mdo.preprocessing.QuadQualityGates)
     assert gates.min_angle_deg == 25.0
     assert gates.max_quality_score == 0.4
 
 
 def test_create_symmetric_mesh_quad_conversion_rejects_sharp_fold():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray(
             [
                 [0.0, 0.0, 0.0],
@@ -430,7 +430,7 @@ def test_create_symmetric_mesh_quad_conversion_rejects_sharp_fold():
         cell_blocks={"triangle": np.asarray([[0, 2, 1], [1, 2, 3]], dtype=np.int64)},
     )
 
-    symmetric_mesh = bsm3.preprocessing.create_symmetric_mesh(
+    symmetric_mesh = gamma_mdo.preprocessing.create_symmetric_mesh(
         mesh,
         convert_to_quad_dominant=True,
     )
@@ -441,7 +441,7 @@ def test_create_symmetric_mesh_quad_conversion_rejects_sharp_fold():
 
 
 def test_create_symmetric_mesh_rejects_num_quads_without_quad_conversion():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]),
         connectivity=np.asarray([[0, 1, 2]], dtype=np.int64),
         cell_types=np.asarray(["triangle"], dtype=object),
@@ -449,11 +449,11 @@ def test_create_symmetric_mesh_rejects_num_quads_without_quad_conversion():
     )
 
     with pytest.raises(ValueError, match="num_quads"):
-        bsm3.preprocessing.create_symmetric_mesh(mesh, num_quads=1)
+        gamma_mdo.preprocessing.create_symmetric_mesh(mesh, num_quads=1)
 
 
 def test_identify_intersection_vertices_returns_driving_parametric_coordinates():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray(
             [
                 [0.0, 0.0, 0.0],
@@ -479,7 +479,7 @@ def test_identify_intersection_vertices_returns_driving_parametric_coordinates()
     fuselage = FakeProjectableComponent(distances=[0.0, 5.0e-5, 0.0, 2.0e-4])
 
     parametric_coordinates, vertices, vertex_ids = (
-        bsm3.preprocessing.identify_intersection_vertices(
+        gamma_mdo.preprocessing.identify_intersection_vertices(
             components=[wing, fuselage],
             driving_component=wing,
             mesh=mesh,
@@ -499,7 +499,7 @@ def test_identify_intersection_vertices_returns_driving_parametric_coordinates()
 
 
 def test_identify_intersection_vertices_supports_three_component_intersections_and_cache():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray(
             [
                 [0.0, 0.0, 0.0],
@@ -520,14 +520,14 @@ def test_identify_intersection_vertices_supports_three_component_intersections_a
     fuselage = FakeProjectableComponent(distances=[2.0e-4, 0.0, 0.0])
     projection_cache = {}
 
-    _, _, pair_vertex_ids = bsm3.preprocessing.identify_intersection_vertices(
+    _, _, pair_vertex_ids = gamma_mdo.preprocessing.identify_intersection_vertices(
         components=[wing, fairing],
         driving_component=wing,
         mesh=mesh,
         intersection_tolerance=1.0e-4,
         projection_cache=projection_cache,
     )
-    _, _, triple_vertex_ids = bsm3.preprocessing.identify_intersection_vertices(
+    _, _, triple_vertex_ids = gamma_mdo.preprocessing.identify_intersection_vertices(
         components=[wing, fairing, fuselage],
         driving_component=wing,
         mesh=mesh,
@@ -543,7 +543,7 @@ def test_identify_intersection_vertices_supports_three_component_intersections_a
 
 
 def test_identify_intersection_vertices_auto_projects_symmetric_half_mesh():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray(
             [
                 [0.0, 0.0, 0.0],
@@ -570,7 +570,7 @@ def test_identify_intersection_vertices_auto_projects_symmetric_half_mesh():
     fuselage = FakeProjectableComponent(distances=[0.0, 5.0e-5, 0.0])
 
     parametric_coordinates, vertices, vertex_ids = (
-        bsm3.preprocessing.identify_intersection_vertices(
+        gamma_mdo.preprocessing.identify_intersection_vertices(
             components=[wing, fuselage],
             driving_component=wing,
             mesh=mesh,
@@ -586,7 +586,7 @@ def test_identify_intersection_vertices_auto_projects_symmetric_half_mesh():
 
 
 def test_identify_intersection_vertices_can_force_full_symmetric_mesh_projection():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray(
             [
                 [0.0, 0.0, 0.0],
@@ -610,7 +610,7 @@ def test_identify_intersection_vertices_can_force_full_symmetric_mesh_projection
     )
     fuselage = FakeProjectableComponent(distances=[0.0, 0.0, 0.0])
 
-    _, _, vertex_ids = bsm3.preprocessing.identify_intersection_vertices(
+    _, _, vertex_ids = gamma_mdo.preprocessing.identify_intersection_vertices(
         components=[wing, fuselage],
         driving_component=wing,
         mesh=mesh,
@@ -623,7 +623,7 @@ def test_identify_intersection_vertices_can_force_full_symmetric_mesh_projection
 
 
 def test_identify_intersection_vertices_requires_driving_component_in_components():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray([[0.0, 0.0, 0.0]]),
         connectivity=np.empty((0, 0), dtype=np.int64),
         cell_types=np.empty((0,), dtype=object),
@@ -633,15 +633,15 @@ def test_identify_intersection_vertices_requires_driving_component_in_components
     fuselage = FakeProjectableComponent(distances=[0.0])
 
     with pytest.raises(ValueError, match="driving_component"):
-        bsm3.preprocessing.identify_intersection_vertices(
+        gamma_mdo.preprocessing.identify_intersection_vertices(
             components=[fuselage, fuselage],
             driving_component=wing,
             mesh=mesh,
         )
 
 
-def test_identify_intersection_vertices_uses_bsm3_projection_model_for_function_sets(monkeypatch):
-    from bsm3.preprocessing import intersections
+def test_identify_intersection_vertices_uses_gamma_mdo_projection_model_for_function_sets(monkeypatch):
+    from gamma_mdo.preprocessing import intersections
 
     class FakeFunctionSetLike:
         functions = {0: object()}
@@ -672,7 +672,7 @@ def test_identify_intersection_vertices_uses_bsm3_projection_model_for_function_
         "_repo_projection_model_api",
         lambda: (FakeProjectionModel, lambda component, patch_ids: "stacked"),
     )
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
         connectivity=np.empty((0, 0), dtype=np.int64),
         cell_types=np.empty((0,), dtype=object),
@@ -681,7 +681,7 @@ def test_identify_intersection_vertices_uses_bsm3_projection_model_for_function_
     component = FakeFunctionSetLike()
 
     parametric_coordinates, _, vertex_ids = (
-        bsm3.preprocessing.identify_intersection_vertices(
+        gamma_mdo.preprocessing.identify_intersection_vertices(
             components=[component, component],
             driving_component=component,
             mesh=mesh,
@@ -701,7 +701,7 @@ def test_create_components_requires_matching_keys_and_search_names_lengths():
     geometry = FakeFunctionSet({0: FakeFunction("fuselage"), 1: FakeFunction("wing")})
 
     with pytest.raises(ValueError, match="same length"):
-        bsm3.preprocessing.create_components(
+        gamma_mdo.preprocessing.create_components(
             keys=[np.arange(1), np.arange(1, 2)],
             search_names=["wing"],
             geometry=geometry,
@@ -715,7 +715,7 @@ def test_plot_components_broadcasts_styles_and_preserves_existing_elements():
     ]
     seed = [{"mesh": "seed", "kwargs": {"color": "black"}}]
 
-    elements = bsm3.plotting.plot_components(
+    elements = gamma_mdo.plotting.plot_components(
         components=components,
         colors="blue",
         opacity=[1.0, 0.4],
@@ -732,11 +732,11 @@ def test_plot_components_validates_style_lengths():
     components = [FakeFunctionSet({0: FakeFunction("wing")}), FakeFunctionSet({1: FakeFunction("tail")})]
 
     with pytest.raises(ValueError, match="colors"):
-        bsm3.plotting.plot_components(components=components, colors=["red", "green", "blue"])
+        gamma_mdo.plotting.plot_components(components=components, colors=["red", "green", "blue"])
 
 
 def test_plot_mesh_reads_e175_mesh_without_showing():
-    elements = bsm3.plotting.plot_mesh(mesh=E175_MESH, color="gray", opacity=0.25, show=False)
+    elements = gamma_mdo.plotting.plot_mesh(mesh=E175_MESH, color="gray", opacity=0.25, show=False)
 
     assert len(elements) == 1
     assert elements[0]["mesh"].n_points == 16400
@@ -746,9 +746,9 @@ def test_plot_mesh_reads_e175_mesh_without_showing():
 
 
 def test_plot_mesh_accepts_preprocessing_mesh_data():
-    mesh = bsm3.preprocessing.import_mesh(E175_MESH)
+    mesh = gamma_mdo.preprocessing.import_mesh(E175_MESH)
 
-    elements = bsm3.plotting.plot_mesh(mesh=mesh, color="gray", opacity=0.25, show=False)
+    elements = gamma_mdo.plotting.plot_mesh(mesh=mesh, color="gray", opacity=0.25, show=False)
 
     assert len(elements) == 1
     assert elements[0]["mesh"].n_points == 16400
@@ -758,7 +758,7 @@ def test_plot_mesh_accepts_preprocessing_mesh_data():
 
 
 def test_plot_mesh_flattens_nested_plotting_elements():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray(
             [
                 [0.0, 0.0, 0.0],
@@ -770,18 +770,18 @@ def test_plot_mesh_flattens_nested_plotting_elements():
         cell_types=np.asarray(["triangle"], dtype=object),
         cell_blocks={"triangle": np.asarray([[0, 1, 2]], dtype=np.int64)},
     )
-    first_highlight = bsm3.plotting.highlight_mesh_nodes(
+    first_highlight = gamma_mdo.plotting.highlight_mesh_nodes(
         mesh,
         nodes_to_highlight=[[0.0, 0.0, 0.0]],
         show=False,
     )
-    second_highlight = bsm3.plotting.highlight_mesh_nodes(
+    second_highlight = gamma_mdo.plotting.highlight_mesh_nodes(
         mesh,
         nodes_to_highlight=[[1.0, 0.0, 0.0]],
         show=False,
     )
 
-    elements = bsm3.plotting.plot_mesh(
+    elements = gamma_mdo.plotting.plot_mesh(
         mesh=mesh,
         plotting_elements=[first_highlight, second_highlight],
         show=False,
@@ -792,7 +792,7 @@ def test_plot_mesh_flattens_nested_plotting_elements():
 
 
 def test_highlight_mesh_nodes_uses_e175_mesh_and_one_based_node_ids():
-    elements = bsm3.plotting.highlight_mesh_nodes(
+    elements = gamma_mdo.plotting.highlight_mesh_nodes(
         E175_MESH,
         nodes_to_highlight=[1, 2, 3],
         node_colore=["red", "green", "blue"],
@@ -805,9 +805,9 @@ def test_highlight_mesh_nodes_uses_e175_mesh_and_one_based_node_ids():
 
 
 def test_highlight_mesh_nodes_accepts_preprocessing_mesh_data():
-    mesh = bsm3.preprocessing.import_mesh(E175_MESH)
+    mesh = gamma_mdo.preprocessing.import_mesh(E175_MESH)
 
-    elements = bsm3.plotting.highlight_mesh_nodes(
+    elements = gamma_mdo.plotting.highlight_mesh_nodes(
         mesh,
         nodes_to_highlight=[1],
         node_colore="red",
@@ -819,7 +819,7 @@ def test_highlight_mesh_nodes_accepts_preprocessing_mesh_data():
 
 
 def test_highlight_mesh_nodes_accepts_point_coordinates_with_negative_values():
-    mesh = bsm3.preprocessing.MeshData(
+    mesh = gamma_mdo.preprocessing.MeshData(
         vertices=np.asarray(
             [
                 [0.0, 0.0, 0.0],
@@ -831,7 +831,7 @@ def test_highlight_mesh_nodes_accepts_point_coordinates_with_negative_values():
         cell_blocks={},
     )
 
-    elements = bsm3.plotting.highlight_mesh_nodes(
+    elements = gamma_mdo.plotting.highlight_mesh_nodes(
         mesh,
         nodes_to_highlight=np.asarray([[1.0, -2.0, 3.0]]),
         node_color="red",
@@ -886,7 +886,7 @@ def test_import_mesh_reads_polygon_npz_in_original_face_order(tmp_path):
     mesh = preprocessing.import_mesh(_write_polygon_npz(tmp_path / "s.npz"))
 
     assert mesh.vertices.shape == (7, 3)
-    assert mesh.metadata["reader"] == "bsm3_safe_npz"
+    assert mesh.metadata["reader"] == "gamma_mdo_safe_npz"
     assert mesh.metadata["source"].endswith("s.npz")
 
     # Original order, not width-sorted.
@@ -1004,7 +1004,7 @@ def test_import_trusted_polygon_pickle_remains_an_opt_in_boundary(tmp_path):
     mesh = preprocessing.import_trusted_polygon_pickle(path)
     assert mesh.vertices.shape == (5, 3)
     assert set(mesh.cell_blocks) == {"triangle", "quad"}
-    assert mesh.metadata["reader"] == "bsm3_polygon_pickle"
+    assert mesh.metadata["reader"] == "gamma_mdo_polygon_pickle"
 
     # It is reachable only on purpose: suffix dispatch still refuses pickles.
     with pytest.raises(ValueError, match="Unsupported mesh format"):

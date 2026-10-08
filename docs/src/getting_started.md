@@ -27,8 +27,8 @@ about the smallest possible runtime dependency set.
 | lsdo_function_spaces | `307ad3aabfff31c6fb44ddf51bc0dcc41a60c420` |
 
 ```bash
-conda create -n bsm3_py312_main python=3.12
-conda activate bsm3_py312_main
+conda create -n gamma_mdo python=3.12
+conda activate gamma_mdo
 
 # Install the complete tested dependency set. requirements-ci.txt contains the
 # exact CSDL_alpha revision shown in the table as well as the tested numerical,
@@ -92,12 +92,12 @@ examples. The large R1 and R5 volume meshes are downloaded on demand and
 verified by SHA-256:
 
 ```bash
-python -m bsm3.assets list
-python -m bsm3.assets download e175-r1-volume   # or e175-r5, or --all
+python -m gamma_mdo.assets list
+python -m gamma_mdo.assets download e175-r1-volume   # or e175-r5, or --all
 ```
 
 Downloads are cached in `~/.cache/gamma/assets` (set `GAMMA_ASSET_DIR` to
-change it). In code, `bsm3.assets.asset_path(name)` gives a file's location.
+change it). In code, `gamma_mdo.assets.asset_path(name)` gives a file's location.
 Tests that need a downloaded mesh skip when it is absent. The assets are
 licensed under CC BY 4.0; see the
 [E175](../examples/e175/ASSETS.md) and
@@ -109,7 +109,7 @@ This site builds from the repository. Build it locally with:
 
 ```bash
 python -m pip install -r docs/requirements.txt
-python -m sphinx -W --keep-going -b html docs /tmp/bsm3-docs-html
+python -m sphinx -W --keep-going -b html docs /tmp/gamma-mdo-docs-html
 ```
 
 There is no published Read the Docs deployment yet; `.readthedocs.yaml` is

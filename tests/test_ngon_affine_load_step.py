@@ -7,7 +7,7 @@ import lsdo_function_spaces as lfs
 import numpy as np
 import pytest
 
-from bsm3.core.boundary_surface_movement import (
+from gamma_mdo.core.boundary_surface_movement import (
     CurrentGraphModel,
     CurrentGraphNgonAffineModel,
     ElasticityMotionSolver,
@@ -20,7 +20,7 @@ from bsm3.core.boundary_surface_movement import (
     run_graph_load_steps,
     stack_component_coefficients,
 )
-from bsm3.preprocessing import MeshData, ProjectionMetadata
+from gamma_mdo.preprocessing import MeshData, ProjectionMetadata
 
 
 def _regular_polygon(num_vertices, *, center_x=0.0):

@@ -7,8 +7,8 @@ import scipy.sparse as sp
 import csdl_alpha as csdl
 import lsdo_function_spaces as lfs
 
-from bsm3.component_parameters import ComponentParameters, WingParameters
-from bsm3.core.boundary_surface_movement import (
+from gamma_mdo.component_parameters import ComponentParameters, WingParameters
+from gamma_mdo.core.boundary_surface_movement import (
     AxisRange,
     ComponentDisplacementData,
     ComponentFreeRegion,
@@ -48,19 +48,19 @@ from bsm3.core.boundary_surface_movement import (
     solve_intersection,
     stack_component_coefficients,
 )
-from bsm3.core.boundary_surface_movement.elasticity import (
+from gamma_mdo.core.boundary_surface_movement.elasticity import (
     _edge_weights,
     _quad_brace_pairs,
 )
-from bsm3.core.projections.function_set_evaluation_custom_op import (
+from gamma_mdo.core.projections.function_set_evaluation_custom_op import (
     FunctionSetEvaluationModel,
 )
-from bsm3.core.weighting_functions import (
+from gamma_mdo.core.weighting_functions import (
     GaussianWeighting,
     InverseDistanceWeighting,
     LinearWeighting,
 )
-from bsm3.preprocessing import (
+from gamma_mdo.preprocessing import (
     MeshData,
     ProjectionMetadata,
     VertexEvaluationMetadata,
@@ -2076,7 +2076,7 @@ def test_identify_reevaluated_vertices_handles_a_fully_deformed_mesh():
     preprocessing edge case: it appears whenever no vertex is reevaluated, for
     example when every component is entirely free.
     """
-    from bsm3.preprocessing.movement import identify_reevaluated_vertices
+    from gamma_mdo.preprocessing.movement import identify_reevaluated_vertices
 
     mesh = _two_vertex_mesh()
     parametric = np.zeros((3, 3), dtype=float)
@@ -2091,7 +2091,7 @@ def test_identify_reevaluated_vertices_handles_a_fully_deformed_mesh():
 
 def test_identify_reevaluated_vertices_still_returns_kept_vertices():
     """The nonempty path must keep working after the dtype correction."""
-    from bsm3.preprocessing.movement import identify_reevaluated_vertices
+    from gamma_mdo.preprocessing.movement import identify_reevaluated_vertices
 
     mesh = _two_vertex_mesh()
     parametric = np.zeros((3, 3), dtype=float)
@@ -2149,7 +2149,7 @@ def test_graph_distance_summary_exposes_exact_typed_keys():
 
 def test_graph_distance_summary_is_exported_from_the_package():
     """Require the typed summary beside the weighting it describes."""
-    import bsm3.core.boundary_surface_movement as package
+    import gamma_mdo.core.boundary_surface_movement as package
 
     assert "GraphDistanceSummary" in package.__all__
     assert package.GraphDistanceSummary is GraphDistanceSummary

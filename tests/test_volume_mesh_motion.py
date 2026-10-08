@@ -3,7 +3,7 @@ from pathlib import Path
 import csdl_alpha as csdl
 import numpy as np
 
-from bsm3.core.boundary_surface_movement import (
+from gamma_mdo.core.boundary_surface_movement import (
     TetraVolumeMesh,
     assemble_elastic_volume_system,
     assemble_graph_volume_system,
@@ -11,7 +11,7 @@ from bsm3.core.boundary_surface_movement import (
     read_wall_position_history,
     write_wall_position_history,
 )
-from bsm3.core.boundary_surface_movement.volume_mesh_motion import (
+from gamma_mdo.core.boundary_surface_movement.volume_mesh_motion import (
     _assemble_tetrahedral_elasticity_bsr,
 )
 

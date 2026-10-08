@@ -5,10 +5,10 @@ import lsdo_function_spaces as lfs
 import numpy as np
 import pytest
 
-from bsm3.core.projections.function_set_closest_distance_custom_op import (
+from gamma_mdo.core.projections.function_set_closest_distance_custom_op import (
     FunctionSetProjectionModel, stack_function_set_coefficients,
 )
-from bsm3.core.projections.surface_normals_numpy import _PatchNormals
+from gamma_mdo.core.projections.surface_normals_numpy import _PatchNormals
 
 
 @pytest.fixture

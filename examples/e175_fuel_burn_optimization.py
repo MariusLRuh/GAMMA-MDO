@@ -15,12 +15,12 @@ import tempfile
 
 import csdl_alpha as csdl
 
-import bsm3.mesh_motion as mm
+import gamma_mdo.mesh_motion as mm
 
 
 ASSETS = (
     Path(__file__).resolve().parents[1]
-    / "bsm3"
+    / "gamma_mdo"
     / "core"
     / "boundary_surface_movement"
 )

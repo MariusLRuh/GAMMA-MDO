@@ -7,7 +7,7 @@ carries analytic derivatives through the CSDL graph, and reports mesh-quality
 and inversion diagnostics so validity is checked rather than guaranteed.
 
 Install the `gamma-mdo` distribution and import its public Python namespace as
-`bsm3`.
+`gamma_mdo`.
 
 ## E175 mesh deformation
 
@@ -58,12 +58,12 @@ geometry parameterization
     -> optional volume-mesh motion
 ```
 
-`bsm3.mesh_motion` is the intended entry point and is deliberately small: input
+`gamma_mdo.mesh_motion` is the intended entry point and is deliberately small: input
 files, a `GeometryModel` describing what moves, a `MeshMotion` settings object
 describing how the mesh follows, and `run` to evaluate it.
 
 ```python
-import bsm3.mesh_motion as mm
+import gamma_mdo.mesh_motion as mm
 
 result = mm.run(
     inputs=mm.InputFiles(
@@ -87,7 +87,7 @@ result.print_summary()
   tracked `examples/e175_surface_deformation.py`.
 - **[External parameterization](src/external_parameterization.md)** — the
   generic contract: bring your own differentiable coefficients.
-- **[API reference](src/api.md)** — the public `bsm3.mesh_motion` surface.
+- **[API reference](src/api.md)** — the public `gamma_mdo.mesh_motion` surface.
 - **[Background](src/background.md)** — what each pipeline stage does and why.
 - **[Integrations and troubleshooting](src/integrations.md)** — honest status
   of DAFoam/OpenFOAM, MPI, VortexAD, mesh generation, and assets.

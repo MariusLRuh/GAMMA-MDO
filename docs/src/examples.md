@@ -25,12 +25,12 @@ import tempfile
 
 import csdl_alpha as csdl
 
-import bsm3.mesh_motion as mm
+import gamma_mdo.mesh_motion as mm
 
 inputs = mm.InputFiles(
     geometry_file=step_file,
     surface_mesh_file=surface_mesh_file,
-    cache_directory=Path(tempfile.gettempdir()) / "bsm3_e175_example_cache",
+    cache_directory=Path(tempfile.gettempdir()) / "gamma_mdo_e175_example_cache",
 )
 ```
 

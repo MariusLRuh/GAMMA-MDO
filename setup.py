@@ -16,7 +16,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent
 
 
 def get_version() -> str:
-    for line in (REPOSITORY_ROOT / "bsm3" / "__init__.py").read_text().splitlines():
+    for line in (REPOSITORY_ROOT / "gamma_mdo" / "__init__.py").read_text().splitlines():
         if line.startswith("__version__"):
             delimiter = '"' if '"' in line else "'"
             return line.split(delimiter)[1]
@@ -35,7 +35,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     package_data={
-        "bsm3.core.boundary_surface_movement": [
+        "gamma_mdo.core.boundary_surface_movement": [
             "e175.stp",
             "e175_quad_panel.msh",
             "e175_r1_wall.msh",

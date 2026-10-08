@@ -10,13 +10,13 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from bsm3.core.boundary_surface_movement import NgonAffineAssembler
-from bsm3.preprocessing import import_mesh
+from gamma_mdo.core.boundary_surface_movement import NgonAffineAssembler
+from gamma_mdo.preprocessing import import_mesh
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIRECTORY = (
-    REPOSITORY_ROOT / "bsm3" / "core" / "boundary_surface_movement"
+    REPOSITORY_ROOT / "gamma_mdo" / "core" / "boundary_surface_movement"
 )
 STEP_FILE = ASSET_DIRECTORY / "e175.stp"
 R1_WALL_FILE = ASSET_DIRECTORY / "e175_r1_wall.msh"
@@ -107,7 +107,7 @@ def test_curated_wall_surface_is_a_safe_npz_archive():
 def test_curated_wall_surface_imports_in_original_face_order():
     """Check generic import preserves face order while grouping blocks by width."""
     mesh = import_mesh(MIXED_NGON_FILE)
-    assert mesh.metadata["reader"] == "bsm3_safe_npz"
+    assert mesh.metadata["reader"] == "gamma_mdo_safe_npz"
 
     with np.load(MIXED_NGON_FILE, allow_pickle=False) as archive:
         connectivity = archive["connectivity"]

@@ -22,12 +22,12 @@ GNU LGPL v3.0 or later.
 | `e175-r5-wall-map` | `e175_r5_wall.volume_map.npz` | GAMMA | 1.6 MB | download |
 | `e175-r5-volume` | `e175_r5_volume.msh` | Ansys Fluent | 131 MB (44 MB download) | download |
 
-SHA-256 checksums for every file are pinned in `bsm3/assets.py`, which also
+SHA-256 checksums for every file are pinned in `gamma_mdo/assets.py`, which also
 downloads and verifies the large files:
 
 ```bash
-python -m bsm3.assets list
-python -m bsm3.assets download e175-r1-volume   # or e175-r5, or --all
+python -m gamma_mdo.assets list
+python -m gamma_mdo.assets download e175-r1-volume   # or e175-r5, or --all
 ```
 
 **Source.** The STEP geometry was modified in OpenVSP from the

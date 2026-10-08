@@ -12,9 +12,9 @@ import csdl_alpha as csdl
 import numpy as np
 import pytest
 
-import bsm3.mesh_motion as mm
-from bsm3.core.boundary_surface_movement import panel_aerodynamics as panel
-from bsm3.preprocessing import MeshData
+import gamma_mdo.mesh_motion as mm
+from gamma_mdo.core.boundary_surface_movement import panel_aerodynamics as panel
+from gamma_mdo.preprocessing import MeshData
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]

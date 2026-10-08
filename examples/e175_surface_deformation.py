@@ -19,7 +19,7 @@ This script deliberately demonstrates the **optional** built-in
 lifting-surface and body helpers, because they keep stage 2 short and
 readable. They are not the required entry point. An external parameterization
 replaces stage 2 with :meth:`GeometryModel.add_component`, handing over its own
-deformed coefficients; stages 3-5 and the entire downstream BSM3 pipeline —
+deformed coefficients; stages 3-5 and the entire downstream GAMMA pipeline —
 intersections, graph motion, reprojection, and diagnostics — are identical
 either way.
 
@@ -36,17 +36,17 @@ import tempfile
 
 import csdl_alpha as csdl
 
-import bsm3.mesh_motion as mm
+import gamma_mdo.mesh_motion as mm
 
 ASSETS = (
     Path(__file__).resolve().parents[1]
-    / "bsm3"
+    / "gamma_mdo"
     / "core"
     / "boundary_surface_movement"
 )
 STEP_FILE = ASSETS / "e175.stp"
 SURFACE_MESH_FILE = ASSETS / "e175_r1_wall.msh"
-CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "bsm3_e175_example_cache"
+CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "gamma_mdo_e175_example_cache"
 
 # Full-size deformation targets, and the neutral value each one moves from.
 # ``deformation_scale`` interpolates between the two, so one number controls
@@ -114,7 +114,7 @@ def main(
     # Built-in helpers are used here for readability. An external
     # parameterization would instead call geometry.add_component(...) with its
     # own deformed coefficients; nothing below this stage changes.
-    # The recorder is created, started, and stopped here: BSM3 never owns
+    # The recorder is created, started, and stopped here: GAMMA never owns
     # global CSDL state. The try begins immediately so a failure in any stage
     # below still stops it.
     recorder = csdl.Recorder(inline=True)

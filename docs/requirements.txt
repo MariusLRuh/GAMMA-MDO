@@ -1,6 +1,6 @@
 # Documentation-only build dependencies.
 #
-# These are NOT runtime dependencies of BSM3. The site renders hand-written
+# These are NOT runtime dependencies of GAMMA. The site renders hand-written
 # Markdown and never imports the package, so the validated geometry stack
 # (CSDL_alpha, lsdo_function_spaces, JAX, gmsh) is deliberately absent here.
 #

@@ -7,7 +7,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from bsm3.core.boundary_surface_movement import analytical_SDF_anchor_attraction_noarg as sdf_mod
+from gamma_mdo.core.boundary_surface_movement import analytical_SDF_anchor_attraction_noarg as sdf_mod
 
 
 def _central_difference_gradient(func, points: np.ndarray, *, epsilon: float = 1e-6) -> np.ndarray:

@@ -1,11 +1,11 @@
-"""Registry, download and verification tests for ``bsm3.assets``."""
+"""Registry, download and verification tests for ``gamma_mdo.assets``."""
 
 import gzip
 import hashlib
 
 import pytest
 
-from bsm3 import assets
+from gamma_mdo import assets
 
 
 def _fake_asset(monkeypatch, tmp_path, payload, *, registered=None):
@@ -49,7 +49,7 @@ def test_downloadable_assets_resolve_inside_the_cache(monkeypatch, tmp_path):
 def test_require_explains_how_to_download_a_missing_asset(monkeypatch, tmp_path):
     """Missing downloads name the command that fetches them."""
     monkeypatch.setenv("GAMMA_ASSET_DIR", str(tmp_path))
-    with pytest.raises(FileNotFoundError, match="python -m bsm3.assets download e175-r5-volume"):
+    with pytest.raises(FileNotFoundError, match="python -m gamma_mdo.assets download e175-r5-volume"):
         assets.require("e175-r5-volume")
     with pytest.raises(KeyError, match="Unknown GAMMA asset"):
         assets.asset_path("e175-r9-volume")

@@ -56,7 +56,7 @@ GAMMA consumes meshes you already have.
 
 ## Assets and file formats
 
-Surface meshes are read by suffix through `bsm3.preprocessing.import_mesh`:
+Surface meshes are read by suffix through `gamma_mdo.preprocessing.import_mesh`:
 `.msh`, `.stl`, and `.npz`.
 
 The `.npz` polygon format is **safe**: it is loaded with `allow_pickle=False`
@@ -67,8 +67,8 @@ code. The curated mixed-N-gon wall asset uses this format.
 Pickle is deliberately **not** part of suffix dispatch. Two explicitly named
 entry points remain for trusted local files you produced yourself:
 
-- `bsm3.preprocessing.import_trusted_polygon_pickle(path)`
-- `bsm3.core.projections.warm_start_projections.load_function_set_from_trusted_pickle(path)`
+- `gamma_mdo.preprocessing.import_trusted_polygon_pickle(path)`
+- `gamma_mdo.core.projections.warm_start_projections.load_function_set_from_trusted_pickle(path)`
 
 Both take a mandatory path, carry an execution warning, and are opt-in. Python
 pickle executes arbitrary code on load; never point either at an untrusted or

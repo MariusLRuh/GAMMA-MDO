@@ -8,7 +8,7 @@ and inversion diagnostics so validity is a measured outcome rather than an
 assumption.
 
 The installable distribution is `gamma-mdo`; the Python import namespace
-remains `bsm3`.
+remains `gamma_mdo`.
 
 It also provides tetrahedral volume-mesh motion and an optional CSDL/DAFoam
 coupling.
@@ -24,7 +24,7 @@ python examples/e175_surface_deformation.py
 Its first uncached run can take several minutes. All high-level inputs are
 editable in the script's `main` function.
 
-`bsm3.mesh_motion` is the intended library entry point and is deliberately
+`gamma_mdo.mesh_motion` is the intended library entry point and is deliberately
 small. The following is the call shape, not a standalone example: at least one
 component and its deformed coefficients or built-in motion must be registered
 on `geometry` before `run` is called.
@@ -34,7 +34,7 @@ from pathlib import Path
 
 import csdl_alpha as csdl
 
-import bsm3.mesh_motion as mm
+import gamma_mdo.mesh_motion as mm
 
 recorder = csdl.Recorder(inline=True)
 recorder.start()
@@ -48,7 +48,7 @@ try:
         inputs=mm.InputFiles(
             geometry_file=Path("geometry.stp"),
             surface_mesh_file=Path("surface.msh"),
-            cache_directory=Path("/tmp/bsm3_cache"),
+            cache_directory=Path("/tmp/gamma_mdo_cache"),
         ),
         geometry=geometry,
         motion=mm.MeshMotion(quality=mm.QualityChecks(surface=True)),
@@ -89,7 +89,7 @@ deployment yet. Build it locally:
 
 ```bash
 python -m pip install -r docs/requirements.txt
-python -m sphinx -W --keep-going -b html docs /tmp/bsm3-docs-html
+python -m sphinx -W --keep-going -b html docs /tmp/gamma-mdo-docs-html
 ```
 
 It covers installation, the E175 example, the external-parameterization
@@ -106,8 +106,8 @@ The validated stack is Python 3.12 with NumPy 2.0.2, SciPy 1.13.1, and JAX
 0.4.38, against these exact revisions:
 
 ```bash
-conda create -n bsm3_py312_main python=3.12
-conda activate bsm3_py312_main
+conda create -n gamma_mdo python=3.12
+conda activate gamma_mdo
 
 # Installs the exact tested dependency set, including CSDL_alpha at
 # 73a9efd1033016a835779db10a9b9e81ed2254ce.

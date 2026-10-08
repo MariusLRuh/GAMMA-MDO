@@ -13,7 +13,7 @@ import pytest
 
 import csdl_alpha as csdl
 
-from bsm3.core.boundary_surface_movement.geometry_volume_mpi import (
+from gamma_mdo.core.boundary_surface_movement.geometry_volume_mpi import (
     SerialComm,
     assemble_local_gradient,
     broadcast_array,
@@ -24,14 +24,14 @@ from bsm3.core.boundary_surface_movement.geometry_volume_mpi import (
     verify_replicated_values,
     verify_seed_ownership,
 )
-from bsm3.core.boundary_surface_movement.geometry_volume_backend import (
+from gamma_mdo.core.boundary_surface_movement.geometry_volume_backend import (
     CSDLRecorderBackend,
 )
-from bsm3.core.boundary_surface_movement.geometry_volume_operation import (
+from gamma_mdo.core.boundary_surface_movement.geometry_volume_operation import (
     GeometryVolumeOperation,
     GeometryVolumeVJP,
 )
-from bsm3.core.boundary_surface_movement.forward_only_fd_checker import (
+from gamma_mdo.core.boundary_surface_movement.forward_only_fd_checker import (
     ADJOINT_MARKER,
     DerivativeComparison,
     check_derivatives_forward_first,
@@ -550,8 +550,8 @@ def test_mesh_motion_volume_backend_calls_the_current_pipeline_api(monkeypatch):
     """
     import csdl_alpha as csdl
 
-    from bsm3.core.boundary_surface_movement import mesh_motion_pipeline
-    from bsm3.core.boundary_surface_movement.geometry_volume_backend import (
+    from gamma_mdo.core.boundary_surface_movement import mesh_motion_pipeline
+    from gamma_mdo.core.boundary_surface_movement.geometry_volume_backend import (
         MeshMotionVolumeBackend,
     )
 
@@ -622,7 +622,7 @@ def test_mesh_motion_volume_backend_calls_the_current_pipeline_api(monkeypatch):
 
 def test_mesh_motion_volume_backend_rejects_the_removed_keyword():
     """Refuse the pre-M1.1 ``model_files`` spelling; this is a clean break."""
-    from bsm3.core.boundary_surface_movement.geometry_volume_backend import (
+    from gamma_mdo.core.boundary_surface_movement.geometry_volume_backend import (
         MeshMotionVolumeBackend,
     )
 

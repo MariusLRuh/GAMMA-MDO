@@ -115,21 +115,21 @@ def test_configuration_targets_python_312_and_real_version():
     assert 'project = "GAMMA"' in conf
     # The version is read from source rather than imported, so the docs build
     # needs none of the geometry stack.
-    assert "import bsm3" not in conf
+    assert "import gamma_mdo" not in conf
     assert "__version__" in conf
 
-    init = REPOSITORY_ROOT / "bsm3" / "__init__.py"
+    init = REPOSITORY_ROOT / "gamma_mdo" / "__init__.py"
     match = re.search(
         r"^__version__\s*=\s*['\"]([^'\"]+)['\"]",
         init.read_text(encoding="utf-8"),
         re.MULTILINE,
     )
-    assert match, "conf.py's version regex must still match bsm3/__init__.py"
+    assert match, "conf.py's version regex must still match gamma_mdo/__init__.py"
 
 
 def _literal_public_exports() -> set[str]:
-    """Read the literal ``mesh_motion.__all__`` without importing ``bsm3``."""
-    module_path = REPOSITORY_ROOT / "bsm3" / "mesh_motion.py"
+    """Read the literal ``mesh_motion.__all__`` without importing ``gamma_mdo``."""
+    module_path = REPOSITORY_ROOT / "gamma_mdo" / "mesh_motion.py"
     tree = ast.parse(module_path.read_text(encoding="utf-8"), module_path)
     assignments = [
         node
@@ -186,8 +186,8 @@ def test_installation_pins_the_validated_stack():
         ]
         assert len(install_blocks) == 1
         install = install_blocks[0]
-        assert "conda create -n bsm3_py312_main python=3.12" in install
-        assert "conda activate bsm3_py312_main" in install
+        assert "conda create -n gamma_mdo python=3.12" in install
+        assert "conda activate gamma_mdo" in install
         assert "python -m pip install -r requirements-ci.txt" in install
         assert "lsdo_function_spaces @ git+" in install
         assert "--no-deps" in install

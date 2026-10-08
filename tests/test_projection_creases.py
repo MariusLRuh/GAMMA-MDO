@@ -7,11 +7,11 @@ import pytest
 from scipy.interpolate import BSpline
 from scipy.optimize import minimize_scalar
 
-from bsm3.core.projections.function_set_closest_distance_custom_op import (
+from gamma_mdo.core.projections.function_set_closest_distance_custom_op import (
     FunctionSetProjectionModel, FunctionSetClosestDistanceOperation,
     stack_function_set_coefficients,
 )
-from bsm3.core.projections.function_set_projection_custom_op import FunctionSetProjectionOperation
+from gamma_mdo.core.projections.function_set_projection_custom_op import FunctionSetProjectionOperation
 
 
 @pytest.fixture

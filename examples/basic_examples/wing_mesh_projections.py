@@ -4,7 +4,7 @@ import csdl_alpha as csdl
 import lsdo_function_spaces as lfs
 import meshio
 
-from bsm3.core.projections.function_set_projection_numpy import (
+from gamma_mdo.core.projections.function_set_projection_numpy import (
     FunctionSetProjector,
 )
 

@@ -19,7 +19,7 @@ from e175_surface_deformation import ASSETS, main as deform_e175
 QUAD_SURFACE_MESH_FILE = (
     ASSETS / "e175_quad_panel.msh"
 )
-CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "bsm3_e175_quad_panel_cache"
+CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "gamma_mdo_e175_quad_panel_cache"
 
 
 def _print_vertex_roles(result) -> None:

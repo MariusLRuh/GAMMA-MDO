@@ -6,13 +6,13 @@ import pytest
 
 import csdl_alpha as csdl
 
-from bsm3.core.boundary_surface_movement.dafoam_csdl import (
+from gamma_mdo.core.boundary_surface_movement.dafoam_csdl import (
     DAFoamAnalysisOperation,
     PYDAFoamBackend,
     add_csdl_inputs_to_da_options,
     build_local_volume_coordinate_map,
 )
-from bsm3.core.boundary_surface_movement.run_dafoam_gmsh import (
+from gamma_mdo.core.boundary_surface_movement.run_dafoam_gmsh import (
     FlowConfig,
     build_da_options,
     set_control_dict_max_iterations,
@@ -508,7 +508,7 @@ def test_build_da_options_applies_both_previously_dead_flow_fields():
 
 def test_wall_function_cli_flag_defaults_to_the_dataclass_value():
     """Accept both flag forms and default to FlowConfig's own value."""
-    from bsm3.core.boundary_surface_movement.run_dafoam_gmsh import make_parser
+    from gamma_mdo.core.boundary_surface_movement.run_dafoam_gmsh import make_parser
 
     parser = make_parser()
     required = ["--reuse-openfoam-mesh"]
@@ -534,7 +534,7 @@ def test_run_dafoam_gmsh_communicator_annotations_resolve_without_mpi():
     """
     import typing
 
-    from bsm3.core.boundary_surface_movement import run_dafoam_gmsh as module
+    from gamma_mdo.core.boundary_surface_movement import run_dafoam_gmsh as module
 
     assert not hasattr(module, "MPI"), "mpi4py must not be imported eagerly"
 

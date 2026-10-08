@@ -28,7 +28,7 @@ certification or airworthiness use. "Cessna" and "Caravan" are trademarks of
 Textron Aviation Inc.; GAMMA is not affiliated with or endorsed by Textron
 Aviation.
 
-Both files live in `bsm3/core/boundary_surface_movement/`, next to a shipped
+Both files live in `gamma_mdo/core/boundary_surface_movement/`, next to a shipped
 copy of this notice (`CESSNA_208_ASSETS.md`). The STEP uses meters; its header
 names only the exporter's default `outfile.stp`. The Gmsh 4.1 surface mesh has
 26,882 vertices, 7,486 triangles and 23,141 quads. The source already has

@@ -4,8 +4,8 @@ import csdl_alpha as csdl
 import lsdo_function_spaces as lfs
 import numpy as np
 
-from bsm3.core.boundary_surface_movement.projection import project_onto_oml
-from bsm3.preprocessing import get_projection_metadata
+from gamma_mdo.core.boundary_surface_movement.projection import project_onto_oml
+from gamma_mdo.preprocessing import get_projection_metadata
 
 
 def _plane():

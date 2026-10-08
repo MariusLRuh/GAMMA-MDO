@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from examples import cessna_208_strut_attachment_deformation as example
-from bsm3.core.boundary_surface_movement import cessna_208_example as support
+from gamma_mdo.core.boundary_surface_movement import cessna_208_example as support
 
 
 def test_inputs_are_the_approved_bytes():
