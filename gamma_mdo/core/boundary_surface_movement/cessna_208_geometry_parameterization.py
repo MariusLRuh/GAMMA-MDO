@@ -257,11 +257,11 @@ def parameterize_c208_geometry(*, step_file: Path, cache_directory: Path, contro
     # Two independent wing-marker coordinates identify the two strut FFD
     # states. Matching those states to the host FFD moves the entire wing-end
     # row, including all three separated interior markers, with the wing.
-    geometric_variables.add_variable(actual_wing_anchors[0, 0], wing_material_anchors[0, 0])
-    geometric_variables.add_variable(actual_wing_anchors[1, 1], wing_material_anchors[1, 1])
+    solver.add_equality_constraint(actual_wing_anchors[0, 0], wing_material_anchors[0, 0])
+    solver.add_equality_constraint(actual_wing_anchors[1, 1], wing_material_anchors[1, 1])
     # A single marker's XYZ fixes all three translation DOFs, hence the whole
     # fuselage-end row and its three separated interior markers in that frame.
-    geometric_variables.add_variable(actual_fuselage_anchors[0, :], fuselage_anchors[0])
+    solver.add_equality_constraint(actual_fuselage_anchors[0, :], fuselage_anchors[0])
     solver.evaluate(geometric_variables)
 
     # Rotate about the quarter chord of the resized root section. Translating
