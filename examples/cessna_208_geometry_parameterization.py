@@ -10,13 +10,14 @@ import json
 from pathlib import Path
 
 import csdl_alpha as csdl
+import lsdo_function_spaces as lfs
+import lsdo_geo
 import numpy as np
 
 from gamma_mdo.core.boundary_surface_movement.cessna_208_geometry_parameterization import (
     parameterize_c208_geometry,
     validate_c208_geometry,
 )
-from examples.cessna_208_geometry_preview import write_cad_preview
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +30,28 @@ WING_ASPECT_RATIO = 9.543398722310108
 STAB_AREA_M2 = 6.507076017257924
 STAB_ASPECT_RATIO = 6.000007139374481
 STAB_ROTATION_DEG = 0.0  # Positive rotates the nose upward about +y.
-EXPORT_CAD_PREVIEW = True  # Sampled CAD surfaces for ParaView; not the CFD mesh.
+PLOT_GEOMETRY = True  # Open the updated CAD with lsdo_geo's native plotter.
+
+
+def updated_geometry(graph):
+    """Reassemble the solved component coefficients as one plottable CAD geometry."""
+    functions = {}
+    for name, component in zip(("strut", "wing", "fuselage", "stab"), graph.components):
+        coefficients = graph.coefficients[name]
+        offset = 0
+        for patch_id in sorted(component.functions):
+            original = component.functions[patch_id]
+            shape = original.coefficients.shape
+            count = int(np.prod(shape[:-1]))
+            functions[patch_id] = lfs.Function(
+                space=original.space,
+                coefficients=coefficients[csdl.slice[offset : offset + count, :]].reshape(shape),
+                name=original.name,
+            )
+            offset += count
+        if offset != coefficients.shape[0]:
+            raise ValueError(f"Coefficient row count changed for {name}.")
+    return lsdo_geo.Geometry(functions=functions, name="Updated Cessna 208 CAD")
 
 
 def main():
@@ -60,9 +82,6 @@ def main():
             OUT / "c208_geometry_coefficients.npz",
             **{name: graph.coefficients[name].value for name in coefficient_order},
         )
-        preview_files = (
-            write_cad_preview(graph, OUT) if EXPORT_CAD_PREVIEW else {}
-        )
         report = {
             "units": {"length": "m", "area": "m^2", "angle": "deg"},
             "targets": {name: float(value.value.item()) for name, value in controls.items()},
@@ -75,15 +94,14 @@ def main():
             },
             "coefficient_file": "c208_geometry_coefficients.npz",
             "coefficient_order": coefficient_order,
-            "cad_preview_files": {
-                name: path.name for name, path in preview_files.items()
-            },
             "wing_ffd_anchor_coordinates": graph.wing_ffd_anchor_coordinates.tolist(),
             "validation": validation,
             "scope": "CAD geometry only; no mesh deformation or intersections",
         }
         (OUT / "c208_geometry_report.json").write_text(json.dumps(report, indent=2) + "\n")
         print(json.dumps(report, indent=2))
+        if PLOT_GEOMETRY:
+            updated_geometry(graph).plot()
         return graph, report
     finally:
         recorder.stop()
