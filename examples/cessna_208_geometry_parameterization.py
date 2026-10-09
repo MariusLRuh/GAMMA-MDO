@@ -89,8 +89,9 @@ def main():
             "achieved_metrics": {
                 name: float(value.value.item()) for name, value in graph.metrics.items()
             },
-            "sectional_states_m": {
-                name: float(value.value.item()) for name, value in graph.states.items()
+            "inner_solver_states_m": {
+                name: float(value.value.item()) if value.value.size == 1 else value.value.tolist()
+                for name, value in graph.states.items()
             },
             "coefficient_file": "c208_geometry_coefficients.npz",
             "coefficient_order": coefficient_order,

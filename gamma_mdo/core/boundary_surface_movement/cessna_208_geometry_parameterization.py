@@ -1,8 +1,8 @@
 """Private, geometry-only C208 parameterization for the example script.
 
-The four planform targets are solved by lsdo_geo. Attachment positions are
-hard material-coordinate constraints: the wing-side strut row and its interior
-markers use the same wing FFD map; the fuselage-side row is unchanged.
+The four planform targets and independent strut-end attachment states are
+solved by lsdo_geo. The wing-end strut row has its own sectional states in the
+wing FFD; the fuselage-end row has a translation state constrained to zero.
 """
 
 from __future__ import annotations
@@ -123,6 +123,19 @@ def _rotate_about_span_axis(points, angle_degrees, pivot):
     return rotated + csdl.matmat(np.ones((points.shape[0], 1)), pivot)
 
 
+def _evaluate_sectional_ffd(block, sections, chord_state, span_state):
+    """Evaluate one set of independent sectional states on an existing block."""
+    inputs = VolumeSectionalParameterizationInputs()
+    inputs.add_sectional_stretch(axis=0, stretch=csdl.concatenate((chord_state, chord_state)))
+    inputs.add_sectional_translation(
+        axis=1, translation=csdl.concatenate((np.zeros(1), span_state))
+    )
+    evaluated = block.evaluate_ffd(sections.evaluate(inputs, plot=False), plot=False)
+    if not isinstance(evaluated, list):
+        evaluated = [evaluated]
+    return evaluated
+
+
 def _ffd_planform(component, patch_id, name, cache_directory, extra_entities=()):
     """Create a two-section host FFD and its two inner-solver states."""
     starboard = create_components(keys=[[patch_id]], geometry=component)
@@ -144,16 +157,9 @@ def _ffd_planform(component, patch_id, name, cache_directory, extra_entities=())
     )
     chord_state = csdl.Variable(value=np.array([0.0]), name=f"{name}_chord_stretch_m")
     span_state = csdl.Variable(value=np.array([0.0]), name=f"{name}_tip_span_shift_m")
-    inputs = VolumeSectionalParameterizationInputs()
-    inputs.add_sectional_stretch(axis=0, stretch=csdl.concatenate((chord_state, chord_state)))
-    inputs.add_sectional_translation(
-        axis=1, translation=csdl.concatenate((np.zeros(1), span_state))
-    )
-    evaluated = block.evaluate_ffd(sections.evaluate(inputs, plot=False), plot=False)
-    if not isinstance(evaluated, list):
-        evaluated = [evaluated]
+    evaluated = _evaluate_sectional_ffd(block, sections, chord_state, span_state)
     shape = starboard.functions[patch_id].coefficients.shape
-    return block, evaluated[0].reshape(shape), evaluated[1:], chord_state, span_state
+    return block, sections, evaluated[0].reshape(shape), evaluated[1:], chord_state, span_state
 
 
 def parameterize_c208_geometry(*, step_file: Path, cache_directory: Path, controls: dict[str, csdl.Variable]):
@@ -191,13 +197,28 @@ def parameterize_c208_geometry(*, step_file: Path, cache_directory: Path, contro
     fuselage_centroid = _section_area_centroid(struts.functions[4], 0)
     wing_centroid = _section_area_centroid(struts.functions[4], 1)
 
-    wing_block, wing_outputs, wing_extra, wing_chord, wing_span_shift = _ffd_planform(
+    wing_block, wing_sections, wing_outputs, wing_extra, wing_chord, wing_span_shift = _ffd_planform(
         wing, 0, "wing", cache_directory,
         (baseline_strut[1], wing_anchors, wing_centroid[None, :]),
     )
-    wing_end_row, wing_material_anchors, wing_end_centroid = wing_extra
+    _, wing_material_anchors, _ = wing_extra
+    strut_wing_chord = csdl.Variable(value=np.array([0.0]), name="strut_wing_chord_stretch_m")
+    strut_wing_span = csdl.Variable(value=np.array([0.0]), name="strut_wing_tip_span_shift_m")
+    strut_wing_outputs = _evaluate_sectional_ffd(
+        wing_block, wing_sections, strut_wing_chord, strut_wing_span
+    )
+    wing_end_row = strut_wing_outputs[1].reshape(strut_shape[1:])
+    wing_end_centroid = strut_wing_outputs[3]
     wing_end_centroid = wing_end_centroid.reshape((3,))
-    _, stab_outputs, _, stab_chord, stab_span_shift = _ffd_planform(
+    fuselage_translation = csdl.Variable(
+        value=np.zeros(3), name="strut_fuselage_end_translation_m"
+    )
+    fuselage_end_row = baseline_strut[0] + csdl.matmat(
+        np.ones((strut_shape[1], 1)), fuselage_translation.reshape((1, 3))
+    )
+    actual_wing_anchors = csdl.matmat(weights, wing_end_row)
+    actual_fuselage_anchors = csdl.matmat(weights, fuselage_end_row)
+    _, _, stab_outputs, _, stab_chord, stab_span_shift = _ffd_planform(
         stab, 2, "stab", cache_directory
     )
 
@@ -219,7 +240,10 @@ def parameterize_c208_geometry(*, step_file: Path, cache_directory: Path, contro
     }
 
     solver = ParameterizationSolver()
-    for state in (wing_chord, wing_span_shift, stab_chord, stab_span_shift):
+    for state in (
+        wing_chord, wing_span_shift, stab_chord, stab_span_shift,
+        strut_wing_chord, strut_wing_span, fuselage_translation,
+    ):
         solver.add_state(state)
     geometric_variables = GeometricVariables()
     metrics = {
@@ -230,6 +254,14 @@ def parameterize_c208_geometry(*, step_file: Path, cache_directory: Path, contro
     }
     for name, value in metrics.items():
         geometric_variables.add_variable(value, controls[name])
+    # Two independent wing-marker coordinates identify the two strut FFD
+    # states. Matching those states to the host FFD moves the entire wing-end
+    # row, including all three separated interior markers, with the wing.
+    geometric_variables.add_variable(actual_wing_anchors[0, 0], wing_material_anchors[0, 0])
+    geometric_variables.add_variable(actual_wing_anchors[1, 1], wing_material_anchors[1, 1])
+    # A single marker's XYZ fixes all three translation DOFs, hence the whole
+    # fuselage-end row and its three separated interior markers in that frame.
+    geometric_variables.add_variable(actual_fuselage_anchors[0, :], fuselage_anchors[0])
     solver.evaluate(geometric_variables)
 
     # Rotate about the quarter chord of the resized root section. Translating
@@ -248,7 +280,7 @@ def parameterize_c208_geometry(*, step_file: Path, cache_directory: Path, contro
     wing_flat = wing_outputs.reshape((-1, 3))
     wing_port = _mirror(wing_flat, wing.functions[0].coefficients.shape)
     stab_port = _mirror(stab_flat, stab.functions[2].coefficients.shape)
-    strut_starboard = csdl.concatenate((baseline_strut[0], wing_end_row), axis=0)
+    strut_starboard = csdl.concatenate((fuselage_end_row, wing_end_row), axis=0)
     strut_port = _mirror(strut_starboard, strut_shape)
     coefficients = {
         "strut": csdl.concatenate((strut_starboard, strut_port), axis=0),
@@ -256,11 +288,10 @@ def parameterize_c208_geometry(*, step_file: Path, cache_directory: Path, contro
         "fuselage": csdl.Variable(value=stack_component_coefficients_numpy(fuselage)),
         "stab": csdl.concatenate((stab_flat, stab_port), axis=0),
     }
-    actual_wing_anchors = csdl.matmat(weights, wing_end_row)
     anchors = {
         "wing_actual": actual_wing_anchors,
         "wing_material_target": wing_material_anchors,
-        "fuselage_actual": csdl.matmat(weights, baseline_strut[0]),
+        "fuselage_actual": actual_fuselage_anchors,
     }
     return C208GeometryGraph(
         components=components,
@@ -273,6 +304,9 @@ def parameterize_c208_geometry(*, step_file: Path, cache_directory: Path, contro
             "wing_tip_span_shift_m": wing_span_shift,
             "stab_chord_stretch_m": stab_chord,
             "stab_tip_span_shift_m": stab_span_shift,
+            "strut_wing_chord_stretch_m": strut_wing_chord,
+            "strut_wing_tip_span_shift_m": strut_wing_span,
+            "strut_fuselage_end_translation_m": fuselage_translation,
         },
         anchors=anchors,
         baseline_anchors={"wing": wing_anchors, "fuselage": fuselage_anchors},
@@ -308,6 +342,20 @@ def validate_c208_geometry(graph: C208GeometryGraph, *, tolerance=1.0e-8) -> dic
         "root_trailing_edge_coefficient_m": float(np.max(np.abs(
             graph.coefficients["stab"].value[0] - graph.baseline_root_trailing_edge
         ))),
+    }
+    wing_equality_error = (
+        graph.anchors["wing_actual"].value - graph.anchors["wing_material_target"].value
+    )
+    fuselage_equality_error = (
+        graph.anchors["fuselage_actual"].value - graph.baseline_anchors["fuselage"]
+    )
+    solver_residuals = {
+        **residuals,
+        "strut_wing_anchor_x_m": float(wing_equality_error[0, 0]),
+        "strut_wing_anchor_y_m": float(wing_equality_error[1, 1]),
+        "strut_fuselage_anchor_x_m": float(fuselage_equality_error[0, 0]),
+        "strut_fuselage_anchor_y_m": float(fuselage_equality_error[0, 1]),
+        "strut_fuselage_anchor_z_m": float(fuselage_equality_error[0, 2]),
     }
     symmetry = {}
     for name, component, first_id in (
@@ -364,8 +412,8 @@ def validate_c208_geometry(graph: C208GeometryGraph, *, tolerance=1.0e-8) -> dic
             "all_interior": bool(np.all(initial["inside_mask"]) and np.all(final["inside_mask"])),
         }
     report = {
-        "inner_solver_converged_by_residual": all(abs(x) < tolerance for x in residuals.values()),
-        "inner_solver_residuals": residuals,
+        "inner_solver_converged_by_residual": all(abs(x) < tolerance for x in solver_residuals.values()),
+        "inner_solver_residuals": solver_residuals,
         "anchor_residuals": anchor_residuals,
         "minimum_marker_separation_m": marker_separation,
         "symmetry_max_abs_m": symmetry,
@@ -389,7 +437,7 @@ def validate_c208_geometry(graph: C208GeometryGraph, *, tolerance=1.0e-8) -> dic
         },
     }
     if not report["inner_solver_converged_by_residual"]:
-        raise ValueError(f"C208 inner solver missed targets: {residuals}")
+        raise ValueError(f"C208 inner solver missed targets: {solver_residuals}")
     if any(value > tolerance for value in anchor_residuals.values()):
         raise ValueError(f"C208 attachment constraint failed: {anchor_residuals}")
     if any(value > tolerance for value in symmetry.values()):

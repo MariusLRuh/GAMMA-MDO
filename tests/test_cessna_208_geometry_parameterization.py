@@ -56,6 +56,18 @@ def test_baseline_is_identity_and_all_attachments_are_embedded(tmp_path):
             )
         assert report["inner_solver_converged_by_residual"]
         assert max(map(abs, report["inner_solver_residuals"].values())) < 1e-10
+        assert len(report["inner_solver_residuals"]) == 9
+        np.testing.assert_allclose(
+            graph.states["strut_wing_chord_stretch_m"].value,
+            graph.states["wing_chord_stretch_m"].value, atol=1e-11,
+        )
+        np.testing.assert_allclose(
+            graph.states["strut_wing_tip_span_shift_m"].value,
+            graph.states["wing_tip_span_shift_m"].value, atol=1e-11,
+        )
+        np.testing.assert_allclose(
+            graph.states["strut_fuselage_end_translation_m"].value, 0.0, atol=1e-11,
+        )
         assert max(report["symmetry_max_abs_m"].values()) == 0.0
         assert max(report["anchor_residuals"].values()) < 3e-12
         for host in ("wing", "fuselage"):
@@ -87,6 +99,18 @@ def test_interior_design_targets_rotation_anchors_and_derivatives(tmp_path):
             if name != "stab_rotation_deg":
                 np.testing.assert_allclose(graph.metrics[name].value, [target], atol=1e-10)
         assert report["inner_solver_converged_by_residual"]
+        assert max(map(abs, report["inner_solver_residuals"].values())) < 1e-10
+        np.testing.assert_allclose(
+            graph.states["strut_wing_chord_stretch_m"].value,
+            graph.states["wing_chord_stretch_m"].value, atol=1e-11,
+        )
+        np.testing.assert_allclose(
+            graph.states["strut_wing_tip_span_shift_m"].value,
+            graph.states["wing_tip_span_shift_m"].value, atol=1e-11,
+        )
+        np.testing.assert_allclose(
+            graph.states["strut_fuselage_end_translation_m"].value, 0.0, atol=1e-11,
+        )
         assert max(report["anchor_residuals"].values()) < 3e-12
         assert max(report["symmetry_max_abs_m"].values()) == 0.0
         assert report["projection"]["wing"]["all_interior"]
