@@ -4,8 +4,10 @@ import contextlib
 
 import csdl_alpha as csdl
 import numpy as np
+import pyvista as pv
 
 from examples import cessna_208_geometry_parameterization as example
+from examples.cessna_208_geometry_preview import write_cad_preview
 from gamma_mdo.core.boundary_surface_movement import stack_component_coefficients_numpy
 from gamma_mdo.core.boundary_surface_movement.cessna_208_geometry_parameterization import (
     parameterize_c208_geometry,
@@ -123,6 +125,22 @@ def test_interior_design_targets_rotation_anchors_and_derivatives(tmp_path):
             - np.arctan2(final_chord[2], final_chord[0])
         )
         np.testing.assert_allclose(angle, targets["stab_rotation_deg"], atol=1e-9)
+
+        preview_files = write_cad_preview(
+            graph, tmp_path / "preview", u_samples=5, v_samples=9
+        )
+        baseline_preview = pv.read(preview_files["baseline"])
+        changed_preview = pv.read(preview_files["deformed"])
+        assert len(changed_preview) == 7
+        assert list(changed_preview.keys()) == list(baseline_preview.keys())
+        assert np.max(np.abs(
+            changed_preview["wing_patch_0"].points
+            - baseline_preview["wing_patch_0"].points
+        )) > 0.01
+        assert np.max(np.abs(
+            changed_preview["stab_patch_2"].points
+            - baseline_preview["stab_patch_2"].points
+        )) > 0.01
 
         outputs = {
             "wing_coeff_x": graph.coefficients["wing"][1000, 0],

@@ -16,6 +16,7 @@ from gamma_mdo.core.boundary_surface_movement.cessna_208_geometry_parameterizati
     parameterize_c208_geometry,
     validate_c208_geometry,
 )
+from examples.cessna_208_geometry_preview import write_cad_preview
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +29,7 @@ WING_ASPECT_RATIO = 9.543398722310108
 STAB_AREA_M2 = 6.507076017257924
 STAB_ASPECT_RATIO = 6.000007139374481
 STAB_ROTATION_DEG = 0.0  # Positive rotates the nose upward about +y.
+EXPORT_CAD_PREVIEW = True  # Sampled CAD surfaces for ParaView; not the CFD mesh.
 
 
 def main():
@@ -58,6 +60,9 @@ def main():
             OUT / "c208_geometry_coefficients.npz",
             **{name: graph.coefficients[name].value for name in coefficient_order},
         )
+        preview_files = (
+            write_cad_preview(graph, OUT) if EXPORT_CAD_PREVIEW else {}
+        )
         report = {
             "units": {"length": "m", "area": "m^2", "angle": "deg"},
             "targets": {name: float(value.value.item()) for name, value in controls.items()},
@@ -70,6 +75,9 @@ def main():
             },
             "coefficient_file": "c208_geometry_coefficients.npz",
             "coefficient_order": coefficient_order,
+            "cad_preview_files": {
+                name: path.name for name, path in preview_files.items()
+            },
             "wing_ffd_anchor_coordinates": graph.wing_ffd_anchor_coordinates.tolist(),
             "validation": validation,
             "scope": "CAD geometry only; no mesh deformation or intersections",
