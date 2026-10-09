@@ -92,7 +92,7 @@ class SurfaceProjectionResult:
         **unmasked** residual still points outward. It is computed before the
         active set is applied, so it is independent of ``converged`` and does
         not by itself imply that the point converged. Such a point sits on an
-        edge and may belong on a neighbouring patch, so the warm-start driver
+        edge and may belong on a neighboring patch, so the warm-start driver
         routes it into the retry path. ``None`` for candidates that lie on a
         boundary by construction.
     """
@@ -108,7 +108,7 @@ class SurfaceProjectionResult:
     # unmasked residual still points outward past it. Computed before the active
     # set is applied, so it is independent of `converged` and does not by itself
     # imply the point converged. Such points sit on a patch edge but may want to
-    # slide across it onto a neighbouring patch; the warm-start driver routes them
+    # slide across it onto a neighboring patch; the warm-start driver routes them
     # into the retry path.
     # None for edge/point candidates that are on a boundary by construction.
     boundary_clamped: Optional[np.ndarray] = None
@@ -393,7 +393,7 @@ def project_points_orthogonality_newton_numpy(
     # 0/1) whose *unmasked* residual still points outward past that bound. The
     # active set (below) zeros that component, so the point reports converged
     # with a near-zero masked residual even though its true closest point may
-    # lie across the edge on a neighbouring patch. Surfacing this is what lets
+    # lie across the edge on a neighboring patch. Surfacing this is what lets
     # the warm-start driver retry such points instead of silently pinning them.
     # This mirrors the block_lower/block_upper logic in _active_mask_numpy.
     lower_on_bound = u <= params.bound_eps

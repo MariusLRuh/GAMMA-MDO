@@ -500,7 +500,7 @@ def test_external_coefficients_drive_the_real_pipeline(tmp_path):
         stack_component_coefficients,
     )
 
-    wing_shift_metres = 0.35
+    wing_shift_meters = 0.35
 
     recorder = csdl.Recorder(inline=True)
     recorder.start()
@@ -538,7 +538,7 @@ def test_external_coefficients_drive_the_real_pipeline(tmp_path):
                 # Only the wing moves: a substantial chordwise shift built
                 # entirely outside GAMMA.
                 direction = np.zeros(baseline.shape)
-                direction[:, 0] = wing_shift_metres
+                direction[:, 0] = wing_shift_meters
                 target = baseline + shift * direction
             else:
                 target = baseline
@@ -623,7 +623,7 @@ def test_external_coefficients_drive_the_real_pipeline(tmp_path):
             best_error, best_step, best_fd = error, step, centered
     simulator[shift] = baseline_value
     print(
-        f"[external-fd] wing_shift={wing_shift_metres} "
+        f"[external-fd] wing_shift={wing_shift_meters} "
         f"analytic={analytic_value:.10e} fd={best_fd:.10e} "
         f"step={best_step:.0e} rel_error={best_error:.3e} "
         f"max_disp={max_displacement:.4f}"

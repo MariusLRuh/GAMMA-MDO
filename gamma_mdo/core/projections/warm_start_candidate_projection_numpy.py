@@ -2,7 +2,7 @@
 
 A single Newton solve seeded from one patch is not reliable near patch
 boundaries or interior C0 knot lines: the closest location may lie on an
-edge, a crease, a crease crossing, or on a neighbouring patch entirely. This module builds several candidate seeds per query point,
+edge, a crease, a crease crossing, or on a neighboring patch entirely. This module builds several candidate seeds per query point,
 solves each, and ranks them: a converged candidate always outranks a
 non-converged one, and the closest converged candidate wins. When no candidate
 converges, the point is not dropped — the minimum-residual candidate is kept as
@@ -96,7 +96,7 @@ class WarmStartCandidateProjectionResult:
     candidate_kind
         Which candidate type won for each point, for example a patch interior,
         a named boundary edge, an interior C0 line or crossing, a fixed point
-        on a degenerate edge, or a neighbouring patch.
+        on a degenerate edge, or a neighboring patch.
     warm_patch_id, warm_uv0
         The seed the winning solve started from.
     edge_map
@@ -512,7 +512,7 @@ def _compute_geometric_near_edges(
 ) -> List[List[EdgeName]]:
     """Decide which patch edges each warm-start seed lies near.
 
-    An edge qualifies when the neighbouring patch across it could hold the true
+    An edge qualifies when the neighboring patch across it could hold the true
     closest point.
 
     Unlike the parametric ``_which_edge`` band (``u <= eps_edge``), the test is
@@ -1098,7 +1098,7 @@ def project_points_with_warm_start_candidates_numpy(
 
     Runs eagerly. For each query point the search assembles candidate seeds:
     the nearest tessellated vertex's own patch, optionally that patch's
-    boundary edges, and optionally the neighbouring patch and its edges. Each
+    boundary edges, and optionally the neighboring patch and its edges. Each
     candidate is solved with the Newton routines in
     :mod:`orthogonality_projection_numpy`.
 
@@ -1181,7 +1181,7 @@ def project_points_with_warm_start_candidates_numpy(
     near_edge_cell_factor
         Multiplier on the one-sampling-cell floor (``2 * eps_edge`` times the
         local tangent magnitude) in that same test. Larger values admit more
-        neighbouring patches.
+        neighboring patches.
     retry_dist_outlier_ratio, retry_dist_outlier_atol
         Wrong-basin detector. A point is retried when its Newton distance
         exceeds ``ratio * warm_start_distance + atol``, which catches candidates
@@ -1194,10 +1194,10 @@ def project_points_with_warm_start_candidates_numpy(
     include_current_patch_boundary
         Include candidates on the seed patch's own boundary edges.
     include_neighbor_patch
-        Include a candidate in the neighbouring patch's interior, mapped across
+        Include a candidate in the neighboring patch's interior, mapped across
         the shared edge.
     include_neighbor_boundary
-        Include a candidate on the neighbouring patch's matching boundary edge.
+        Include a candidate on the neighboring patch's matching boundary edge.
     retry_on_failure
         Enable the retry pass for points that did not converge, are
         boundary-clamped, or are distance outliers. When ``False`` the

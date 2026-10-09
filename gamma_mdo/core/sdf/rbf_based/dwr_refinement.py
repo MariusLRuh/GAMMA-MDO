@@ -430,7 +430,7 @@ def evaluate_rbf_matvec(
     phi = (t * t * t * t) * (4.0 * q + 1.0)                  # Wendland C2
 
     # --- Step 4: scatter-sum into output ------------------------------------
-    # np.add.at is the fastest path that avoids materialising a full sparse
+    # np.add.at is the fastest path that avoids materializing a full sparse
     # matrix.  For very dense problems (> ~5M nnz) the CSR SpMV route is
     # comparable but requires an extra matrix allocation; we stay with
     # np.add.at for simplicity and predictable memory usage.
@@ -2316,7 +2316,7 @@ class HybridWendlandC2DWRRefinerOptimized:
         """
         Evaluate the fitted surrogate at arbitrary query points.
 
-        Uses ``evaluate_rbf_matvec`` which skips sparse-matrix materialisation
+        Uses ``evaluate_rbf_matvec`` which skips sparse-matrix materialization
         and calls ``cKDTree.query_ball_point`` with ``workers=-1`` on the full
         query array in one shot — avoiding the chunked double-loop that made
         this ~20× slower than necessary.

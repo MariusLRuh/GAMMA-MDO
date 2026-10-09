@@ -395,7 +395,7 @@ def generate_edge_neighbor_seeds(
     edge_map: Dict[Tuple[int, EdgeName], NeighborEdgeMap],
     eps_edge: float = 1e-3,
 ) -> List[Tuple[np.ndarray, np.ndarray]]:
-    """Add candidate seeds on neighbouring patches for near-edge points.
+    """Add candidate seeds on neighboring patches for near-edge points.
 
     A seed close to a patch boundary may belong on the adjoining patch, so an
     extra candidate set is emitted for each such crossing.

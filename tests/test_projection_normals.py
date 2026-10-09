@@ -190,7 +190,7 @@ def test_collapsed_boundary_uses_incident_neighbor(recorder):
     np.testing.assert_allclose(normals, [[0., 0., 1.]], atol=1e-12)
 
 
-def test_cancelled_incident_normals_are_ambiguous(recorder):
+def test_canceled_incident_normals_are_ambiguous(recorder):
     """A folded-back zero-thickness sheet has no usable combined direction."""
     fs = _collapsed(degree=1)
     net = fs.functions[0].coefficients.value.copy()
