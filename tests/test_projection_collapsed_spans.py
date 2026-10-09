@@ -26,13 +26,15 @@ def recorder():
         rec.stop()
 
 
-def _thin_airfoil_loop():
+def _thin_airfoil_loop(trailing_edge_gap=0.0):
     """Build a chordwise loop with a sharp trailing edge, as OpenVSP exports it.
 
     Six cubic Bezier segments run trailing edge -> upper skin -> leading edge
     -> lower skin -> trailing edge, so the normals point outward. The first and
     last segments have zero length at the trailing edge, so ``v`` in
-    ``[0, 1/6]`` and ``[5/6, 1]`` both map onto the trailing-edge line.
+    ``[0, 1/6]`` and ``[5/6, 1]`` both map onto the trailing-edge line. A
+    nonzero ``trailing_edge_gap`` moves the two ends apart in y, so the loop is
+    open and the two strips no longer coincide.
     """
     def half_thickness(x):
         return 0.06 * np.sin(np.pi * x)
@@ -42,6 +44,8 @@ def _thin_airfoil_loop():
     upper = [(x, half_thickness(x)) for x in (0.0, 0.17, 0.33, 0.5, 0.67, 0.83, 1.0)]
     section = np.array(trailing_edge + lower + upper + trailing_edge)[::-1]
     assert section.shape == (19, 2)
+    section[:4, 1] += 0.5 * trailing_edge_gap
+    section[-4:, 1] -= 0.5 * trailing_edge_gap
     net = np.stack([
         np.column_stack((section, np.full(len(section), z))) for z in (0.0, 1.0)
     ])
@@ -265,3 +269,26 @@ def test_edge_foot_at_an_open_patch_boundary_keeps_the_edge_sign(recorder, kind)
     np.testing.assert_array_equal(sign, [1.0, 1.0])
     assert not diagnostics["sign_ambiguous"].any()
     np.testing.assert_array_equal(diagnostics["normal_support_count"], [2, 2])
+
+
+@pytest.mark.parametrize("gap, joined", [(1e-15, True), (1e-11, False), (1e-6, False)])
+def test_closed_loop_join_requires_coincident_ends(recorder, gap, joined):
+    """Nearly coincident open ends must not be joined into a closed loop."""
+    fs = _thin_airfoil_loop(trailing_edge_gap=gap)
+    function = fs.functions[0]
+    groups = wsc._collapsed_span_groups(
+        np.asarray(function.coefficients.value), function.space.degree, function.space.knots,
+    )
+    # The threshold is 1e-12 of the control-net diagonal (about 1.4 here).
+    assert len(groups[1]) == (1 if joined else 2)
+    sign, diagnostics = _edge_signs(
+        fs, [[1.05, 0.0, 0.4]], [[0.4, 0.5 * SEGMENT]], ["collapsed_v_c0_line"],
+    )
+    if joined:
+        assert sign[0] == 1.0
+        assert diagnostics["normal_support_count"][0] == 2
+        assert not diagnostics["sign_ambiguous"][0]
+    else:
+        # Only the skin beyond this strip is incident; the far end is not joined.
+        assert diagnostics["normal_support_count"][0] == 1
+        assert diagnostics["sign_ambiguous"][0]
