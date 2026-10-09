@@ -16,7 +16,7 @@ The script walks the five stages the pipeline performs, in order.
 
 ## 1. Choose geometry and mesh files
 
-A STEP body supplies the outer mould line; a surface mesh supplies the nodes
+A STEP body supplies the outer mold line; a surface mesh supplies the nodes
 that must follow it.
 
 ```python

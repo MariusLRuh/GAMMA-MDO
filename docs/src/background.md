@@ -4,7 +4,7 @@ This page explains what each pipeline stage does and why the settings exist.
 
 ## The problem
 
-When a CAD outer mould line deforms, a surface mesh attached to it must follow.
+When a CAD outer mold line deforms, a surface mesh attached to it must follow.
 Moving only the boundary nodes and leaving the interior alone tangles the mesh;
 moving everything rigidly ignores the shape change. GAMMA propagates the motion
 through the mesh graph, then combines closest-point projection, exact
@@ -50,7 +50,7 @@ Several settings shape that solve:
 The final surface combines three differentiable paths:
 
 - graph-moved non-intersection vertices use closest-point projection onto the
-  deformed outer mould line;
+  deformed outer mold line;
 - exact intersection vertices retain the bracketed intersection solution; and
 - vertices outside the deformation set are reevaluated at their fixed
   component-parametric coordinates.

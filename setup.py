@@ -51,6 +51,7 @@ setup(
     # Deliberately empty: do not let installing GAMMA modify a DAFoam stack.
     install_requires=[],
     classifiers=[
+        "Development Status :: 3 - Alpha",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",

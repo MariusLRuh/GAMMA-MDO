@@ -69,7 +69,7 @@ finally:
 ```
 
 Everything downstream — intersection curves, graph-Laplacian surface motion,
-reprojection onto the deformed outer mould line, quality diagnostics, and the
+reprojection onto the deformed outer mold line, quality diagnostics, and the
 optional volume chain — is identical whether the coefficients came from the
 built-in helpers or from your own parameterization.
 

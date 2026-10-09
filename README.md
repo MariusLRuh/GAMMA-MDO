@@ -1,17 +1,24 @@
 # GAMMA
 
 **GAMMA — Geometry-Aware Mesh Movement Analysis** performs differentiable
-boundary-surface mesh motion. Given a CAD outer mould line and a surface mesh
+boundary-surface mesh motion. Given a CAD outer mold line and a surface mesh
 that must follow it, GAMMA moves every mesh node as the geometry deforms,
 carries analytic derivatives through the CSDL graph, and reports mesh-quality
 and inversion diagnostics so validity is a measured outcome rather than an
 assumption.
 
-The installable distribution is `gamma-mdo`; the Python import namespace
-remains `gamma_mdo`.
+The installable distribution is `gamma-mdo`, and the Python import package is
+`gamma_mdo`.
 
 It also provides tetrahedral volume-mesh motion and an optional CSDL/DAFoam
 coupling.
+
+> **Alpha release.** GAMMA is alpha (pre-release) software under active
+> development. Interfaces, default settings and outputs may change between
+> releases without notice, and the methods have not been validated for
+> production or engineering use. Use it at your own risk: GAMMA is provided
+> without warranty, as stated in its [license](LICENSE.txt). Please report
+> problems through [GitHub issues](https://github.com/MariusLRuh/GAMMA-MDO/issues).
 
 ## Quickstart
 

@@ -56,7 +56,7 @@ def main(
     Parameters
     ----------
     geometry_file
-        STEP outer mould line supplied to GAMMA.
+        STEP outer mold line supplied to GAMMA.
     panel_mesh_file
         Full-aircraft triangle/quad surface mesh supplied to VortexAD.
     cache_directory

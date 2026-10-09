@@ -2,7 +2,7 @@
 
 The script walks the five stages the pipeline performs, in order:
 
-1. **Choose geometry and mesh files.** A STEP body supplies the outer mould
+1. **Choose geometry and mesh files.** A STEP body supplies the outer mold
    line; a surface mesh supplies the nodes that must follow it.
 2. **Define design variables and component motion.** Each design variable is a
    differentiable control. Components declare how they respond, and
@@ -11,7 +11,7 @@ The script walks the five stages the pipeline performs, in order:
    weighting for the graph-Laplacian solve.
 4. **Run the differentiable mesh-motion model.** Intersections are recomputed,
    the interior is propagated, graph-moved nodes are reprojected onto the
-   deformed outer mould line, and exact intersections are retained.
+   deformed outer mold line, and exact intersections are retained.
 5. **Inspect the result.** Fold, inversion, and quality diagnostics come back
    on the result object.
 
@@ -78,7 +78,7 @@ def main(
     Parameters
     ----------
     geometry_file
-        STEP body defining the outer mould line.
+        STEP body defining the outer mold line.
     surface_mesh_file
         Surface mesh whose nodes follow the deformed geometry.
     cache_directory
