@@ -1,7 +1,8 @@
 # GAMMA 0.3.0a1 (alpha)
 
-GAMMA is alpha (pre-release) software under active development; interfaces and
-outputs may change between releases. Use it at your own risk.
+GAMMA is research software under active development, released as an alpha
+(pre-release) version; its interfaces and default settings may still change
+between releases. It is provided as is, without warranty.
 
 ## New features
 

@@ -10,14 +10,15 @@ Install the `gamma-mdo` distribution and import its public Python namespace as
 `gamma_mdo`.
 
 :::{warning}
-**Alpha release.** GAMMA is alpha (pre-release) software under active
-development. Interfaces, default settings and outputs may change between
-releases without notice, and the methods have not been validated for
-production or engineering use. Use it at your own risk: GAMMA is provided
-without warranty, as stated in its
-[license](https://github.com/MariusLRuh/GAMMA-MDO/blob/main/LICENSE.txt).
-Please report problems through
-[GitHub issues](https://github.com/MariusLRuh/GAMMA-MDO/issues).
+**Alpha release.** GAMMA is research software under active development,
+released as an alpha (pre-release) version. Its interfaces and default
+settings may still change between releases. As with any research code, check
+that results suit your application; GAMMA reports mesh-quality and inversion
+diagnostics to help with this. GAMMA is provided as is, without warranty,
+under its
+[license](https://github.com/MariusLRuh/GAMMA-MDO/blob/main/LICENSE.txt), and
+you use it at your own risk. Questions, bug reports and suggestions are welcome
+through [GitHub issues](https://github.com/MariusLRuh/GAMMA-MDO/issues).
 :::
 
 ## E175 mesh deformation
