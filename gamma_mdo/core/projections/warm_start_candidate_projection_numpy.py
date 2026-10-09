@@ -1061,6 +1061,133 @@ def _select_best_candidates(candidate_results: Dict[str, object], num_points: in
     return best_candidate
 
 
+def _collapsed_span_groups(coeffs, degrees, knot_vectors, *, rtol: float = 1e-10):
+    """Group the knot intervals on which a patch does not move along an axis.
+
+    A knot span collapses along an axis when, for every row of the control net
+    across the other axis, all control points that influence the span coincide.
+    The surface is then constant along that axis on the span; a zero-length
+    segment at a sharp trailing or leading edge is the typical case. The
+    orthogonality residual along the axis vanishes everywhere in such a span, so
+    a Newton solve seeded inside it stops at once, wherever the true closest
+    point lies. Adjacent collapsed spans are merged, and intervals with the same
+    image (for example the two ends of a chordwise loop that meet at a trailing
+    edge) form one group.
+
+    Parameters
+    ----------
+    coeffs
+        Control net of shape ``(n_u, n_v, physical_dimension)``.
+    degrees
+        Polynomial degree along u and v.
+    knot_vectors
+        Knot vectors along u and v.
+    rtol
+        Coincidence tolerance relative to the control-net bounding-box diagonal
+        (at least one model unit).
+
+    Returns
+    -------
+    tuple of list of list of tuple of float
+        For u and for v, groups of merged collapsed ``(lo, hi)`` intervals that
+        share one image.
+    """
+    coeffs = np.asarray(coeffs, dtype=float)
+    flat = coeffs.reshape(-1, coeffs.shape[-1])
+    atol = float(rtol) * max(float(np.linalg.norm(np.ptp(flat, axis=0))), 1.0)
+    groups_by_axis = []
+    for axis in (0, 1):
+        degree = int(degrees[axis])
+        knots = np.asarray(knot_vectors[axis], dtype=float)
+        net = np.moveaxis(coeffs, axis, 0)
+        intervals: List[Tuple[float, float]] = []
+        images: List[np.ndarray] = []
+        for span in range(degree, net.shape[0]):
+            lo, hi = float(knots[span]), float(knots[span + 1])
+            if hi <= lo:
+                continue
+            block = net[span - degree: span + 1]
+            if float(np.max(np.linalg.norm(block - block[:1], axis=-1))) > atol:
+                continue
+            if intervals and intervals[-1][1] == lo:
+                intervals[-1] = (intervals[-1][0], hi)
+            else:
+                intervals.append((lo, hi))
+                images.append(block[0])
+        groups: List[List[Tuple[float, float]]] = []
+        group_images: List[np.ndarray] = []
+        for interval, image in zip(intervals, images):
+            for group, group_image in zip(groups, group_images):
+                if float(np.max(np.linalg.norm(image - group_image, axis=-1))) <= atol:
+                    group.append(interval)
+                    break
+            else:
+                groups.append([interval])
+                group_images.append(image)
+        groups_by_axis.append(groups)
+    return tuple(groups_by_axis)
+
+
+def _build_collapsed_span_escape_specs(
+    selected_patch_id: np.ndarray,
+    selected_uv: np.ndarray,
+    collapsed_by_patch: Dict[int, tuple],
+) -> List[_CandidateSpec]:
+    """Re-seed points whose foot lies in or next to a collapsed knot span.
+
+    A collapsed interval maps to a single curve, such as a sharp trailing edge,
+    so the surface on either side of that curve can be far apart in parameter
+    space (the two ends of a chordwise loop) while being close in space. A
+    point whose selected foot lies inside a collapsed interval of a group, or in
+    a knot span next to one, gets a free Newton seed in the middle of the
+    non-collapsed span on each side of every interval in the group, keeping
+    the other parametric coordinate.
+    """
+    specs: List[_CandidateSpec] = []
+    for point_index, (pid, uv) in enumerate(zip(selected_patch_id, selected_uv)):
+        entry = collapsed_by_patch.get(int(pid))
+        if entry is None:
+            continue
+        groups_by_axis, unique_knots = entry
+        seen: set = set()
+        for axis in (0, 1):
+            coordinate = float(uv[axis])
+            knots = unique_knots[axis]
+            for group in groups_by_axis[axis]:
+                neighbors = []
+                for lo, hi in group:
+                    before, after = knots[knots < lo], knots[knots > hi]
+                    neighbors.append((
+                        float(before[-1]) if before.size else None,
+                        lo, hi,
+                        float(after[0]) if after.size else None,
+                    ))
+                if not any(
+                    (lo if prev is None else prev) <= coordinate <= (hi if nxt is None else nxt)
+                    for prev, lo, hi, nxt in neighbors
+                ):
+                    continue
+                for prev, lo, hi, nxt in neighbors:
+                    for seed in (
+                        None if prev is None else 0.5 * (prev + lo),
+                        None if nxt is None else 0.5 * (hi + nxt),
+                    ):
+                        if seed is None:
+                            continue
+                        candidate_uv = np.array(uv, dtype=float)
+                        candidate_uv[axis] = seed
+                        _append_candidate_spec(
+                            specs,
+                            seen,
+                            point_index=point_index,
+                            candidate_patch=int(pid),
+                            candidate_uv=candidate_uv,
+                            fixed_axis=-1,
+                            fixed_value=0.0,
+                            kind="collapsed_span_escape",
+                        )
+    return specs
+
 def project_points_with_warm_start_candidates_numpy(
     function_set,
     points: np.ndarray,
@@ -1092,6 +1219,7 @@ def project_points_with_warm_start_candidates_numpy(
     retry_accept_distance_factor: float = 4.0,
     retry_accept_distance_atol: float = 1e-3,
     retry_normal_dot_min: float = -0.25,
+    escape_collapsed_spans: bool = True,
     params: OrthogonalityNewtonParams = OrthogonalityNewtonParams(),
 ) -> WarmStartCandidateProjectionResult:
     """Project points by trying several warm-started candidates and keeping the best.
@@ -1223,6 +1351,16 @@ def project_points_with_warm_start_candidates_numpy(
         the retry lands on a *different* patch, rejecting replacements that flip
         to the opposite side of a thin body. Values at or below ``-1.0`` disable
         the check; it never applies within one patch.
+    escape_collapsed_spans
+        After selection and retry, re-solve every point whose foot lies in or
+        next to a collapsed knot span: one along which the surface does not move,
+        such as a zero-length segment at a sharp trailing edge. Inside such a
+        span the Newton residual vanishes without a minimum, and next to it the
+        nearest surface may lie across the edge, far away in parameter space.
+        Seeds are placed beside every collapsed interval with the same image,
+        and a result replaces the selection only if it outranks it under the
+        first-pass ordering (converged first, then strictly smaller distance).
+        On by default.
     params
         Newton tolerances forwarded to the per-candidate solves; see
         :class:`~gamma_mdo.core.projections.orthogonality_projection_numpy.OrthogonalityNewtonParams`.
@@ -1436,6 +1574,51 @@ def project_points_with_warm_start_candidates_numpy(
                     selected_converged[point_index] = retry_results["converged"][retry_index]
                     selected_iterations[point_index] = retry_results["iterations"][retry_index]
                     selected_kind[point_index] = retry_results["candidate_kind"][retry_index]
+
+    if escape_collapsed_spans:
+        collapsed_by_patch: Dict[int, tuple] = {}
+        for pid in np.unique(selected_patch_id):
+            coeffs, degrees, knot_vectors = _get_patch_metadata(function_set, int(pid))
+            groups = _collapsed_span_groups(coeffs, degrees, knot_vectors)
+            if groups[0] or groups[1]:
+                collapsed_by_patch[int(pid)] = (
+                    groups,
+                    tuple(np.unique(knots) for knots in knot_vectors),
+                )
+        escape_specs = (
+            _build_collapsed_span_escape_specs(
+                selected_patch_id, selected_uv, collapsed_by_patch
+            )
+            if collapsed_by_patch
+            else []
+        )
+        if escape_specs:
+            escape_results = _run_candidate_projections(
+                function_set=function_set,
+                points=points,
+                specs=escape_specs,
+                params=params,
+            )
+            escape_best = _select_best_candidates(escape_results, num_points=points.shape[0])
+            for point_index in sorted({spec.point_index for spec in escape_specs}):
+                escape_index = escape_best[point_index]
+                if escape_index < 0 or not _is_candidate_better(
+                    converged=bool(escape_results["converged"][escape_index]),
+                    residual=float(escape_results["residual"][escape_index]),
+                    dist2=float(escape_results["dist2"][escape_index]),
+                    best_converged=bool(selected_converged[point_index]),
+                    best_residual=float(selected_residual[point_index]),
+                    best_dist2=float(selected_dist2[point_index]),
+                ):
+                    continue
+                selected_patch_id[point_index] = escape_results["patch_id"][escape_index]
+                selected_uv[point_index] = escape_results["uv"][escape_index]
+                selected_projected_points[point_index] = escape_results["projected_points"][escape_index]
+                selected_dist2[point_index] = escape_results["dist2"][escape_index]
+                selected_residual[point_index] = escape_results["residual"][escape_index]
+                selected_converged[point_index] = escape_results["converged"][escape_index]
+                selected_iterations[point_index] = escape_results["iterations"][escape_index]
+                selected_kind[point_index] = escape_results["candidate_kind"][escape_index]
 
     return WarmStartCandidateProjectionResult(
         patch_id=selected_patch_id,

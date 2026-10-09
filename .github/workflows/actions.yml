@@ -95,6 +95,7 @@ jobs:
             tests/test_e175_driver_configuration.py \
             tests/test_cessna_208_strut_attachment_deformation.py \
             tests/test_projection_chordwise_restore.py \
+            tests/test_projection_collapsed_spans.py \
             tests/test_projection_creases.py \
             tests/test_projection_normals.py \
             examples/cessna_208_strut_attachment_deformation.py
@@ -110,6 +111,7 @@ jobs:
             tests/test_curated_assets.py \
             tests/test_cessna_208_strut_attachment_deformation.py \
             tests/test_projection_chordwise_restore.py \
+            tests/test_projection_collapsed_spans.py \
             tests/test_projection_creases.py \
             tests/test_projection_normals.py
 

@@ -243,7 +243,7 @@ can open before the final seam check; a failed check raises and writes a
 clearly marked invalid diagnostic rather than a normal result. Its source
 inputs and checksums are recorded in the [C208 asset record](../examples/cessna_208/ASSETS.md).
 
-At the default setting, no polygon normal flips occur. Eight quads have a
+At the default setting, no polygon normal flips occur. Seven quads have a
 negative corner; three already do in the source mesh. The example prints these
 quality figures and highlights the flagged cells in the viewer. A negative
 corner in a recombined quad is distinct from inversion of the whole polygon.

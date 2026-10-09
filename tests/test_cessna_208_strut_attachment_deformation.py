@@ -154,6 +154,21 @@ def test_default_c208_example_preserves_seams_and_polygon_normals(
     final = set(result.surface_inversion_report.inverted_element_ids.tolist())
     assert len(initial) == 3
     assert len(final - initial) <= 5
+    # The wing and stab CAD do not move, so their CAD-prescribed vertices must
+    # come back exactly. A setup projection trapped in a zero-length
+    # trailing-edge segment used to move some of them by about 1 cm.
+    dumps = list(tmp_path.glob("cessna_208_*.npz"))
+    assert len(dumps) == 1
+    with np.load(dumps[0]) as dump:
+        fixed = np.intersect1d(
+            dump["parametrically_prescribed_vertex_ids"],
+            np.union1d(dump["wing_ids"], dump["stab_ids"]),
+        )
+        assert fixed.size > 9000
+        drift = np.linalg.norm(
+            dump["final_vertices"][fixed] - dump["initial_vertices"][fixed], axis=1,
+        )
+    assert drift.max() <= 1e-8
     reports = list(tmp_path.glob("cessna_208_*.json"))
     assert len(reports) == 1
     report = json.loads(reports[0].read_text())
