@@ -19,6 +19,10 @@ class _PatchNormals:
         self.info = info
         self.coefficients = coefficients
         self.flat = coefficients.reshape(-1, coefficients.shape[-1])
+        # Coincidence tolerance for collapsed strips, shared with the
+        # projection's collapsed-span detection: relative to the control-net
+        # size, so it does not depend on model units.
+        self.atol = 1e-12*float(np.linalg.norm(np.ptp(self.flat, axis=0)))
         self.spans = [np.array([j for j in range(p, coefficients.shape[a]) if k[j] < k[j+1]])
                       for a, (p, k) in enumerate(zip(info.degrees, info.knot_vectors))]
         self.intervals = {}
@@ -119,9 +123,17 @@ class _PatchNormals:
                            self.info.degrees[axis], self.coefficients.shape[axis]-1))
 
     def interval(self, uv, axis):
-        """Find a maximal exactly constant strip on the active transverse support."""
+        """Find a maximal constant strip on the active transverse support.
+
+        A query exactly on the lower knot of a non-constant span also checks the
+        span that ends at that knot, so both end knots of a strip are reported
+        as lying on the strip's edge. Adjacent constant spans merge only when
+        their images coincide.
+        """
         spans = [self.span(uv, a) for a in (0, 1)]
-        key = (*spans, axis)
+        knots = self.info.knot_vectors[axis]
+        at_lower_knot = bool(uv[axis] == knots[spans[axis]])
+        key = (*spans, axis, at_lower_knot)
         if key in self.intervals:
             return self.intervals[key]
         other = 1-axis
@@ -131,19 +143,29 @@ class _PatchNormals:
 
         def constant(j):
             support = net[j-degree:j+1, transverse]
-            return support[0] if np.all(support == support[:1]) else None
+            spread = np.max(np.linalg.norm(support-support[:1], axis=-1))
+            return support[0] if spread <= self.atol else None
 
-        value = constant(spans[axis])
+        def same(a, b):
+            return (a is not None and b is not None
+                    and np.max(np.linalg.norm(a-b, axis=-1)) <= self.atol)
+
+        valid = self.spans[axis]
+        start = spans[axis]
+        value = constant(start)
+        if value is None and at_lower_knot:
+            index = int(np.searchsorted(valid, start))
+            if index > 0 and knots[valid[index-1]+1] == uv[axis]:
+                start = int(valid[index-1])
+                value = constant(start)
         result = None
         if value is not None:
-            valid = self.spans[axis]
-            index = int(np.searchsorted(valid, spans[axis]))
+            index = int(np.searchsorted(valid, start))
             lo = hi = index
-            while lo > 0 and np.array_equal(constant(valid[lo-1]), value):
+            while lo > 0 and same(constant(valid[lo-1]), value):
                 lo -= 1
-            while hi+1 < len(valid) and np.array_equal(constant(valid[hi+1]), value):
+            while hi+1 < len(valid) and same(constant(valid[hi+1]), value):
                 hi += 1
-            knots = self.info.knot_vectors[axis]
             result = (float(knots[valid[lo]]), float(knots[valid[hi]+1]))
         self.intervals[key] = result
         return result

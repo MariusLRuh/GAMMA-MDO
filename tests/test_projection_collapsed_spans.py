@@ -29,10 +29,10 @@ def recorder():
 def _thin_airfoil_loop():
     """Build a chordwise loop with a sharp trailing edge, as OpenVSP exports it.
 
-    Six cubic Bezier segments run trailing edge -> lower skin -> leading edge
-    -> upper skin -> trailing edge. The first and last segments have zero length
-    at the trailing edge, so ``v`` in ``[0, 1/6]`` and ``[5/6, 1]`` both map onto
-    the trailing-edge line.
+    Six cubic Bezier segments run trailing edge -> upper skin -> leading edge
+    -> lower skin -> trailing edge, so the normals point outward. The first and
+    last segments have zero length at the trailing edge, so ``v`` in
+    ``[0, 1/6]`` and ``[5/6, 1]`` both map onto the trailing-edge line.
     """
     def half_thickness(x):
         return 0.06 * np.sin(np.pi * x)
@@ -40,7 +40,7 @@ def _thin_airfoil_loop():
     trailing_edge = [(1.0, 0.0)] * 3
     lower = [(x, -half_thickness(x)) for x in (1.0, 0.83, 0.67, 0.5, 0.33, 0.17)]
     upper = [(x, half_thickness(x)) for x in (0.0, 0.17, 0.33, 0.5, 0.67, 0.83, 1.0)]
-    section = np.array(trailing_edge + lower + upper + trailing_edge)
+    section = np.array(trailing_edge + lower + upper + trailing_edge)[::-1]
     assert section.shape == (19, 2)
     net = np.stack([
         np.column_stack((section, np.full(len(section), z))) for z in (0.0, 1.0)
@@ -181,8 +181,9 @@ def _derivative_check(monkeypatch, function_set, point, seed_uv, *, free_seed_on
         jac_p = np.asarray(csdl.derivative(projected, p).value)
         # An affine change of every control point keeps coincident control
         # points coincident, so collapsed spans stay collapsed, as under the
-        # rigid strut motion of the C208 example. A generic perturbation would
-        # open the strip, where the projection is not differentiable.
+        # rigid strut motion of the C208 example; the small step also keeps the
+        # foot on the same feature. A generic perturbation would open the
+        # strip, where the projection is not differentiable.
         rng = np.random.default_rng(208)
         direction = coefficients @ rng.normal(size=(3, 3)).T + rng.normal(size=3)
         jac_c = np.asarray(csdl.derivative(projected, c).value) @ direction.ravel()
@@ -225,3 +226,42 @@ def test_foot_inside_a_strip_is_an_edge_line_foot(monkeypatch, recorder):
     assert kind == "collapsed_v_c0_line"
     # The edge runs along z: only the z offset of the query moves the foot.
     np.testing.assert_allclose(jac_p, np.diag([0.0, 0.0, 1.0]), atol=1e-9)
+
+
+def _edge_signs(function_set, query_points, feet_uv, kinds):
+    """Run the normal-mode sign recovery for prescribed feet and labels."""
+    model = FunctionSetProjectionModel(function_set, sdf=True, sdf_sign_mode="normal")
+    coefficients = stack_function_set_coefficients(function_set, model.patch_ids)
+    feet_uv = np.asarray(feet_uv, dtype=float)
+    projected = np.vstack([_point_on_surface(function_set, *uv) for uv in feet_uv])
+    diagnostics = {}
+    sign, _, _ = model._compute_normal_sign_metadata(
+        coefficients, np.asarray(query_points, dtype=float), projected,
+        np.zeros(len(feet_uv), dtype=int), feet_uv, list(kinds),
+        np.zeros(len(feet_uv), dtype=bool), diagnostics=diagnostics,
+    )
+    return sign, diagnostics
+
+
+@pytest.mark.parametrize("edge_v", [SEGMENT, 5 * SEGMENT])
+@pytest.mark.parametrize("kind", ["warm_start_patch", "current_v_c0_line", "collapsed_v_c0_line"])
+def test_feet_on_collapsed_span_end_knots_keep_the_edge_sign(recorder, edge_v, kind):
+    """Both end knots of a trailing-edge strip are on the edge, whatever the label."""
+    fs = _thin_airfoil_loop()
+    behind = [[1.05, 0.0, 0.4], [1.05, 0.02, 0.4], [1.05, -0.02, 0.4]]
+    sign, diagnostics = _edge_signs(fs, behind, [[0.4, edge_v]] * 3, [kind] * 3)
+    np.testing.assert_array_equal(sign, [1.0, 1.0, 1.0])
+    assert diagnostics["collapsed_parametric_axes"][:, 1].all()
+    assert not diagnostics["sign_ambiguous"].any()
+
+
+@pytest.mark.parametrize("kind", ["collapsed_c0_corner_point", "collapsed_v_c0_line"])
+def test_edge_foot_at_an_open_patch_boundary_keeps_the_edge_sign(recorder, kind):
+    """A trailing-edge foot at either open spanwise end still sees both skins."""
+    fs = _thin_airfoil_loop()
+    sign, diagnostics = _edge_signs(
+        fs, [[1.05, 0.0, -0.05], [1.05, 0.0, 1.05]], [[0.0, SEGMENT], [1.0, SEGMENT]], [kind] * 2,
+    )
+    np.testing.assert_array_equal(sign, [1.0, 1.0])
+    assert not diagnostics["sign_ambiguous"].any()
+    np.testing.assert_array_equal(diagnostics["normal_support_count"], [2, 2])

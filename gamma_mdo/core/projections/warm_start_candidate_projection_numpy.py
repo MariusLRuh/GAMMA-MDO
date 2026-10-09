@@ -1368,7 +1368,10 @@ def project_points_with_warm_start_candidates_numpy(
         is set to
         ``collapsed_u_c0_line`` or ``collapsed_v_c0_line`` (both axes:
         ``collapsed_c0_corner_point``) so derivatives hold the collapsed
-        coordinate fixed. On by default.
+        coordinate fixed. Those derivatives are valid for coefficient changes
+        that keep the collapsed control points coincident and keep the foot on
+        the same edge feature; where a foot switches between an edge and a
+        face, the projection is not differentiable. On by default.
     params
         Newton tolerances forwarded to the per-candidate solves; see
         :class:`~gamma_mdo.core.projections.orthogonality_projection_numpy.OrthogonalityNewtonParams`.
@@ -1629,7 +1632,9 @@ def project_points_with_warm_start_candidates_numpy(
         # A foot in a collapsed span, including its end knots, is a point on the
         # edge curve that span maps to: the coordinate along the collapsed axis
         # is only a label. Mark it as a fixed-axis line foot so derivatives move
-        # it along the edge rather than solving a singular two-axis system.
+        # it along the edge rather than solving a singular two-axis system. This
+        # holds while coefficient changes keep the strip collapsed and the foot
+        # stays on the same edge feature.
         for point_index, (pid, uv) in enumerate(zip(selected_patch_id, selected_uv)):
             entry = collapsed_by_patch.get(int(pid))
             if entry is None:

@@ -1022,6 +1022,30 @@ class FunctionSetProjectionModel:
                     sides[axis] = -1
             return sides
 
+        wraps = {}
+
+        def self_wrap(pid, edge):
+            # A closed loop (for example a chordwise airfoil section whose two
+            # ends meet at the trailing edge) joins a patch's opposite edges.
+            # The CAD edge map records joins between different patches only.
+            key = (pid, edge)
+            if key not in wraps:
+                patch = patches[pid]
+                axis = 0 if edge[0] == 'u' else 1
+                first, last = (np.take(patch.coefficients, index, axis=axis) for index in (0, -1))
+                here, there = (first, last) if edge[1] == '0' else (last, first)
+                wraps[key] = None
+                for reverse in (False, True):
+                    candidate = there[::-1] if reverse else there
+                    if np.max(np.linalg.norm(here-candidate, axis=-1)) <= patch.atol:
+                        wraps[key] = types.SimpleNamespace(
+                            neighbor_patch=pid,
+                            neighbor_edge=edge[0]+('1' if edge[1] == '0' else '0'),
+                            reverse_along_edge=reverse,
+                        )
+                        break
+            return wraps[key]
+
         def edge_face(pid, edge, uv, point, visited):
             # Walk across a collapsed interval touching an edge until its
             # incident regular face is found. Detect missing joins/cycles.
@@ -1029,7 +1053,7 @@ class FunctionSetProjectionModel:
             if key in visited:
                 return None
             visited = visited | {key}
-            neighbor = self.edge_map.get(key)
+            neighbor = self.edge_map.get(key) or self_wrap(pid, edge)
             if neighbor is None or neighbor.neighbor_patch not in patches:
                 return None
             mapped = _map_uv_across_edge(uv, edge, neighbor.neighbor_edge,
