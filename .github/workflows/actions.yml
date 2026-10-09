@@ -9,7 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The full suite takes about 25-30 minutes on a hosted runner, mostly the
+    # C208 integration test with its finite-difference re-executions.
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
