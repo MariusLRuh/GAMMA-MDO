@@ -152,7 +152,7 @@ def test_interior_design_targets_rotation_anchors_and_derivatives(tmp_path):
         for output_name, control_name in pairs:
             output = outputs[output_name]
             control = graph.controls[control_name]
-            analytic = float(np.asarray(csdl.derivative(output, control).value).ravel()[0])
+            analytic = float(np.asarray(csdl.derivative(output, control, mode="reverse").value).ravel()[0])
             original = control.value.copy()
             try:
                 for h in (1e-4, 3e-5):
