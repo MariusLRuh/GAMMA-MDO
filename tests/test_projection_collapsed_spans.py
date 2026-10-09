@@ -37,7 +37,9 @@ def _thin_airfoil_loop(trailing_edge_gap=0.0):
     open and the two strips no longer coincide.
     """
     def half_thickness(x):
-        return 0.06 * np.sin(np.pi * x)
+        # Exactly zero at the trailing edge, so the collapsed control points
+        # coincide exactly, as they do in the exported CAD.
+        return 0.0 if x == 1.0 else 0.06 * np.sin(np.pi * x)
 
     trailing_edge = [(1.0, 0.0)] * 3
     lower = [(x, -half_thickness(x)) for x in (1.0, 0.83, 0.67, 0.5, 0.33, 0.17)]
