@@ -1061,7 +1061,7 @@ def _select_best_candidates(candidate_results: Dict[str, object], num_points: in
     return best_candidate
 
 
-def _collapsed_span_groups(coeffs, degrees, knot_vectors, *, rtol: float = 1e-10):
+def _collapsed_span_groups(coeffs, degrees, knot_vectors, *, rtol: float = 1e-12):
     """Group the knot intervals on which a patch does not move along an axis.
 
     A knot span collapses along an axis when, for every row of the control net
@@ -1070,9 +1070,9 @@ def _collapsed_span_groups(coeffs, degrees, knot_vectors, *, rtol: float = 1e-10
     segment at a sharp trailing or leading edge is the typical case. The
     orthogonality residual along the axis vanishes everywhere in such a span, so
     a Newton solve seeded inside it stops at once, wherever the true closest
-    point lies. Adjacent collapsed spans are merged, and intervals with the same
-    image (for example the two ends of a chordwise loop that meet at a trailing
-    edge) form one group.
+    point lies. Adjacent collapsed spans are merged only when their images
+    coincide, and intervals with the same image (for example the two ends of a
+    chordwise loop that meet at a trailing edge) form one group.
 
     Parameters
     ----------
@@ -1083,8 +1083,8 @@ def _collapsed_span_groups(coeffs, degrees, knot_vectors, *, rtol: float = 1e-10
     knot_vectors
         Knot vectors along u and v.
     rtol
-        Coincidence tolerance relative to the control-net bounding-box diagonal
-        (at least one model unit).
+        Coincidence tolerance relative to the control-net bounding-box diagonal,
+        so detection does not depend on model units.
 
     Returns
     -------
@@ -1094,7 +1094,7 @@ def _collapsed_span_groups(coeffs, degrees, knot_vectors, *, rtol: float = 1e-10
     """
     coeffs = np.asarray(coeffs, dtype=float)
     flat = coeffs.reshape(-1, coeffs.shape[-1])
-    atol = float(rtol) * max(float(np.linalg.norm(np.ptp(flat, axis=0))), 1.0)
+    atol = float(rtol) * float(np.linalg.norm(np.ptp(flat, axis=0)))
     groups_by_axis = []
     for axis in (0, 1):
         degree = int(degrees[axis])
@@ -1109,7 +1109,11 @@ def _collapsed_span_groups(coeffs, degrees, knot_vectors, *, rtol: float = 1e-10
             block = net[span - degree: span + 1]
             if float(np.max(np.linalg.norm(block - block[:1], axis=-1))) > atol:
                 continue
-            if intervals and intervals[-1][1] == lo:
+            if (
+                intervals
+                and intervals[-1][1] == lo
+                and float(np.max(np.linalg.norm(block[0] - images[-1], axis=-1))) <= atol
+            ):
                 intervals[-1] = (intervals[-1][0], hi)
             else:
                 intervals.append((lo, hi))
@@ -1358,9 +1362,13 @@ def project_points_with_warm_start_candidates_numpy(
         span the Newton residual vanishes without a minimum, and next to it the
         nearest surface may lie across the edge, far away in parameter space.
         Seeds are placed beside every collapsed interval with the same image,
-        and a result replaces the selection only if it outranks it under the
-        first-pass ordering (converged first, then strictly smaller distance).
-        On by default.
+        and a result replaces the selection only if it converged and is
+        strictly closer. A foot that still lies in a collapsed span (end knots
+        included) is the closest point on the edge curve; its candidate kind
+        is set to
+        ``collapsed_u_c0_line`` or ``collapsed_v_c0_line`` (both axes:
+        ``collapsed_c0_corner_point``) so derivatives hold the collapsed
+        coordinate fixed. On by default.
     params
         Newton tolerances forwarded to the per-candidate solves; see
         :class:`~gamma_mdo.core.projections.orthogonality_projection_numpy.OrthogonalityNewtonParams`.
@@ -1602,13 +1610,11 @@ def project_points_with_warm_start_candidates_numpy(
             escape_best = _select_best_candidates(escape_results, num_points=points.shape[0])
             for point_index in sorted({spec.point_index for spec in escape_specs}):
                 escape_index = escape_best[point_index]
-                if escape_index < 0 or not _is_candidate_better(
-                    converged=bool(escape_results["converged"][escape_index]),
-                    residual=float(escape_results["residual"][escape_index]),
-                    dist2=float(escape_results["dist2"][escape_index]),
-                    best_converged=bool(selected_converged[point_index]),
-                    best_residual=float(selected_residual[point_index]),
-                    best_dist2=float(selected_dist2[point_index]),
+                if (
+                    escape_index < 0
+                    or not bool(escape_results["converged"][escape_index])
+                    or not float(escape_results["dist2"][escape_index])
+                    < float(selected_dist2[point_index])
                 ):
                     continue
                 selected_patch_id[point_index] = escape_results["patch_id"][escape_index]
@@ -1619,6 +1625,34 @@ def project_points_with_warm_start_candidates_numpy(
                 selected_converged[point_index] = escape_results["converged"][escape_index]
                 selected_iterations[point_index] = escape_results["iterations"][escape_index]
                 selected_kind[point_index] = escape_results["candidate_kind"][escape_index]
+
+        # A foot in a collapsed span, including its end knots, is a point on the
+        # edge curve that span maps to: the coordinate along the collapsed axis
+        # is only a label. Mark it as a fixed-axis line foot so derivatives move
+        # it along the edge rather than solving a singular two-axis system.
+        for point_index, (pid, uv) in enumerate(zip(selected_patch_id, selected_uv)):
+            entry = collapsed_by_patch.get(int(pid))
+            if entry is None:
+                continue
+            groups_by_axis = entry[0]
+            inside = [
+                any(lo <= float(uv[axis]) <= hi for group in groups_by_axis[axis] for lo, hi in group)
+                for axis in (0, 1)
+            ]
+            if not any(inside):
+                continue
+            kind = selected_kind[point_index]
+            fixed = {axis for axis in (0, 1) if inside[axis]}
+            if "degenerate_point" in kind or "c0_corner" in kind:
+                fixed = {0, 1}
+            for axis, tokens in ((0, ("u0_boundary", "u1_boundary", "u_c0_line")),
+                                 (1, ("v0_boundary", "v1_boundary", "v_c0_line"))):
+                if any(token in kind for token in tokens):
+                    fixed.add(axis)
+            if len(fixed) == 2:
+                selected_kind[point_index] = "collapsed_c0_corner_point"
+            else:
+                selected_kind[point_index] = f"collapsed_{'uv'[fixed.pop()]}_c0_line"
 
     return WarmStartCandidateProjectionResult(
         patch_id=selected_patch_id,
