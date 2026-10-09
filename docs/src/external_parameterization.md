@@ -29,7 +29,7 @@ The external parameterization owns its design variables **and** the recorder.
 ```python
 import csdl_alpha as csdl
 
-import bsm3.mesh_motion as mm
+import gamma_mdo.mesh_motion as mm
 
 # Your recorder, your design variables.
 recorder = csdl.Recorder(inline=True)
@@ -69,7 +69,7 @@ finally:
 ```
 
 Everything downstream — intersection curves, graph-Laplacian surface motion,
-reprojection onto the deformed outer mould line, quality diagnostics, and the
+reprojection onto the deformed outer mold line, quality diagnostics, and the
 optional volume chain — is identical whether the coefficients came from the
 built-in helpers or from your own parameterization.
 
@@ -96,7 +96,7 @@ Three conditions must hold. They are the current limits of the contract:
    are known — that is, *after* the call to `add_component`, not at call time.
    A layout mismatch therefore surfaces during the run, not during declaration.
 3. **Every dependent variable must belong to the caller-owned recorder** that
-   you pass to `bsm3.mesh_motion.run`. A variable created under a different
+   you pass to `gamma_mdo.mesh_motion.run`. A variable created under a different
    recorder is not part of the graph GAMMA evaluates.
 
 ## Restricting motion

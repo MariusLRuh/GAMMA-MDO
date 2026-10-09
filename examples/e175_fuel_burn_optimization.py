@@ -15,17 +15,17 @@ import tempfile
 
 import csdl_alpha as csdl
 
-import bsm3.mesh_motion as mm
+import gamma_mdo.mesh_motion as mm
 
 
 ASSETS = (
     Path(__file__).resolve().parents[1]
-    / "bsm3"
+    / "gamma_mdo"
     / "core"
     / "boundary_surface_movement"
 )
-STEP_FILE = ASSETS / "embraer_175_no_winglets.stp"
-PANEL_MESH_FILE = ASSETS / "embraer_175_panel_quad_dominant_high_quality.msh"
+STEP_FILE = ASSETS / "e175.stp"
+PANEL_MESH_FILE = ASSETS / "e175_quad_panel.msh"
 CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "gamma_e175_panel_cache"
 
 REFERENCE_WING_AREA_M2 = 70.0
@@ -56,7 +56,7 @@ def main(
     Parameters
     ----------
     geometry_file
-        STEP outer mould line supplied to GAMMA.
+        STEP outer mold line supplied to GAMMA.
     panel_mesh_file
         Full-aircraft triangle/quad surface mesh supplied to VortexAD.
     cache_directory

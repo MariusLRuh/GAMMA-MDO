@@ -140,5 +140,32 @@ _autosummary
 _conf_master.py
 
 # E175 mesh-motion runtime artifacts
-bsm3/core/boundary_surface_movement/_setup_cache_*.npz
-bsm3/core/boundary_surface_movement/openvsp_euler_volume_mesh/deformation_results/
+gamma_mdo/core/boundary_surface_movement/_setup_cache_*.npz
+gamma_mdo/core/boundary_surface_movement/openvsp_euler_volume_mesh/deformation_results/
+
+# Local-only research assets: kept on disk, not published. The public example
+# assets are listed in gamma_mdo/assets.py; large ones download into
+# ~/.cache/gamma/assets with `python -m gamma_mdo.assets download`.
+gamma_mdo/core/boundary_surface_movement/openvsp_euler_volume_mesh/
+gamma_mdo/core/boundary_surface_movement/fluent_R*_tet_euler_volume_mesh/
+gamma_mdo/core/boundary_surface_movement/E175_w_fairing.stp
+gamma_mdo/core/boundary_surface_movement/E175_w_fairing_mesh.msh
+gamma_mdo/core/boundary_surface_movement/wall_surface.npz
+gamma_mdo/core/boundary_surface_movement/wing_fuse_test*.msh
+gamma_mdo/core/boundary_surface_movement/wing_fuse_test*.stp
+
+# Local-only research scripts that need the local-only assets above.
+gamma_mdo/core/boundary_surface_movement/movement_test_csdl_single_rbf_master*.py
+gamma_mdo/core/boundary_surface_movement/movement_test_csdl_static_seam.py
+gamma_mdo/core/boundary_surface_movement/movement_test_new*.py
+gamma_mdo/core/boundary_surface_movement/movement_test_old.py
+gamma_mdo/core/boundary_surface_movement/movement_test_embraer_175_hex_mesh.py
+gamma_mdo/core/boundary_surface_movement/wing_fuse_quad_dominant_symmetry.py
+
+# Local-only DAFoam driver, derivative ladder, cluster scripts and their tests;
+# to be published later. The DAFoam coupling library itself stays public.
+gamma_mdo/core/boundary_surface_movement/cfd_mesh_dafoam_analysis.py
+gamma_mdo/core/boundary_surface_movement/e175_derivative_ladder.py
+gamma_mdo/core/boundary_surface_movement/DAFOAM_MPI_RANK0_HANDOFF.md
+gamma_mdo/core/boundary_surface_movement/slurm/
+tests/test_dafoam_driver.py

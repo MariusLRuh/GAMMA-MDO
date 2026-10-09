@@ -1,13 +1,25 @@
 # GAMMA
 
 **GAMMA — Geometry-Aware Mesh Movement Analysis** performs differentiable
-boundary-surface mesh motion. Given a CAD outer mould line and a surface mesh
+boundary-surface mesh motion. Given a CAD outer mold line and a surface mesh
 that must follow it, GAMMA moves every mesh node as the geometry deforms,
 carries analytic derivatives through the CSDL graph, and reports mesh-quality
 and inversion diagnostics so validity is checked rather than guaranteed.
 
 Install the `gamma-mdo` distribution and import its public Python namespace as
-`bsm3`.
+`gamma_mdo`.
+
+:::{warning}
+**Alpha release.** GAMMA is research software under active development,
+released as an alpha (pre-release) version. Its interfaces and default
+settings may still change between releases. As with any research code, check
+that results suit your application; GAMMA reports mesh-quality and inversion
+diagnostics to help with this. GAMMA is provided as is, without warranty,
+under its
+[license](https://github.com/MariusLRuh/GAMMA-MDO/blob/main/LICENSE.txt), and
+you use it at your own risk. Questions, bug reports and suggestions are welcome
+through [GitHub issues](https://github.com/MariusLRuh/GAMMA-MDO/issues).
+:::
 
 ## E175 mesh deformation
 
@@ -53,17 +65,17 @@ geometry parameterization
     -> deformed component coefficients
     -> intersection curves between components
     -> graph-Laplacian surface motion with regularization
-    -> reprojection onto the deformed outer mould line
+    -> reprojection onto the deformed outer mold line
     -> quality and inversion diagnostics
     -> optional volume-mesh motion
 ```
 
-`bsm3.mesh_motion` is the intended entry point and is deliberately small: input
+`gamma_mdo.mesh_motion` is the intended entry point and is deliberately small: input
 files, a `GeometryModel` describing what moves, a `MeshMotion` settings object
 describing how the mesh follows, and `run` to evaluate it.
 
 ```python
-import bsm3.mesh_motion as mm
+import gamma_mdo.mesh_motion as mm
 
 result = mm.run(
     inputs=mm.InputFiles(
@@ -87,7 +99,7 @@ result.print_summary()
   tracked `examples/e175_surface_deformation.py`.
 - **[External parameterization](src/external_parameterization.md)** — the
   generic contract: bring your own differentiable coefficients.
-- **[API reference](src/api.md)** — the public `bsm3.mesh_motion` surface.
+- **[API reference](src/api.md)** — the public `gamma_mdo.mesh_motion` surface.
 - **[Background](src/background.md)** — what each pipeline stage does and why.
 - **[Integrations and troubleshooting](src/integrations.md)** — honest status
   of DAFoam/OpenFOAM, MPI, VortexAD, mesh generation, and assets.

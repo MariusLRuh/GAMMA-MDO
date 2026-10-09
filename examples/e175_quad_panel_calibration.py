@@ -17,9 +17,9 @@ import tempfile
 from e175_surface_deformation import ASSETS, main as deform_e175
 
 QUAD_SURFACE_MESH_FILE = (
-    ASSETS / "embraer_175_panel_quad_dominant_high_quality.msh"
+    ASSETS / "e175_quad_panel.msh"
 )
-CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "bsm3_e175_quad_panel_cache"
+CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "gamma_mdo_e175_quad_panel_cache"
 
 
 def _print_vertex_roles(result) -> None:
@@ -44,7 +44,7 @@ def _print_vertex_roles(result) -> None:
 
 def main(
     *,
-    geometry_file: Path = ASSETS / "embraer_175_no_winglets.stp",
+    geometry_file: Path = ASSETS / "e175.stp",
     surface_mesh_file: Path = QUAD_SURFACE_MESH_FILE,
     cache_directory: Path = CACHE_DIRECTORY,
     deformation_scale: float = 1.0,

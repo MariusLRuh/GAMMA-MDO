@@ -16,7 +16,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent
 
 
 def get_version() -> str:
-    for line in (REPOSITORY_ROOT / "bsm3" / "__init__.py").read_text().splitlines():
+    for line in (REPOSITORY_ROOT / "gamma_mdo" / "__init__.py").read_text().splitlines():
         if line.startswith("__version__"):
             delimiter = '"' if '"' in line else "'"
             return line.split(delimiter)[1]
@@ -35,11 +35,15 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     package_data={
-        "bsm3.core.boundary_surface_movement": [
-            "embraer_175_no_winglets.stp",
-            "openvsp_euler_volume_mesh/e175_euler_volume.msh",
-            "openvsp_euler_volume_mesh/e175_openvsp_aircraft_wall.msh",
-            "openvsp_euler_volume_mesh/e175_openvsp_aircraft_wall.volume_map.npz",
+        "gamma_mdo.core.boundary_surface_movement": [
+            "e175.stp",
+            "e175_quad_panel.msh",
+            "e175_r1_wall.msh",
+            "e175_r1_wall.volume_map.npz",
+            "E175_ASSETS.md",
+            "cessna_208.stp",
+            "cessna_208.msh",
+            "CESSNA_208_ASSETS.md",
         ],
     },
     python_requires=">=3.9",
@@ -47,6 +51,7 @@ setup(
     # Deliberately empty: do not let installing GAMMA modify a DAFoam stack.
     install_requires=[],
     classifiers=[
+        "Development Status :: 3 - Alpha",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",

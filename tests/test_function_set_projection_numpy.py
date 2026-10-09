@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from bsm3.core.projections import function_set_projection_numpy as projection_numpy
+from gamma_mdo.core.projections import function_set_projection_numpy as projection_numpy
 
 
 class _Coefficients:

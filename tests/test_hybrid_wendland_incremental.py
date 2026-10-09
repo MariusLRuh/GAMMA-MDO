@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from bsm3.core.sdf.rbf_based.dwr_refinement import (
+from gamma_mdo.core.sdf.rbf_based.dwr_refinement import (
     HybridWendlandC2DWRRefinerIncremental,
     HybridWendlandC2DWRRefinerOptimized,
     assemble_wendland_matrix,

@@ -13,7 +13,7 @@
 #   jax
 #   gmsh
 #
-# Additional prerequisites for cfd_mesh_dafoam_analysis.py are supplied by the
+# Additional prerequisites for the DAFoam coupling are supplied by the
 # sourced DAFoam environment:
 #   dafoam
 #   mpi4py

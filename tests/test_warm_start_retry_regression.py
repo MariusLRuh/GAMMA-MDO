@@ -16,10 +16,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from bsm3.core.projections.orthogonality_projection_numpy import (
+from gamma_mdo.core.projections.orthogonality_projection_numpy import (
     project_points_orthogonality_newton_numpy,
 )
-from bsm3.core.projections.warm_start_candidate_projection_numpy import (
+from gamma_mdo.core.projections.warm_start_candidate_projection_numpy import (
     _build_local_retry_candidate_specs,
 )
 

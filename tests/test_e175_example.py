@@ -8,7 +8,7 @@ import csdl_alpha as csdl
 import numpy as np
 import pytest
 
-import bsm3.mesh_motion as mm
+import gamma_mdo.mesh_motion as mm
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_PATH = REPOSITORY_ROOT / "examples" / "e175_surface_deformation.py"
@@ -16,16 +16,12 @@ ADVANCED_EXAMPLE_PATH = (
     REPOSITORY_ROOT / "examples" / "e175_quad_panel_calibration.py"
 )
 ASSET_DIRECTORY = (
-    REPOSITORY_ROOT / "bsm3" / "core" / "boundary_surface_movement"
+    REPOSITORY_ROOT / "gamma_mdo" / "core" / "boundary_surface_movement"
 )
-STEP_FILE = ASSET_DIRECTORY / "embraer_175_no_winglets.stp"
-TRIANGLE_SURFACE_FILE = (
-    ASSET_DIRECTORY
-    / "fluent_R1_tet_euler_volume_mesh"
-    / "e175_fluent_R1_aircraft_wall_tri.msh"
-)
+STEP_FILE = ASSET_DIRECTORY / "e175.stp"
+TRIANGLE_SURFACE_FILE = ASSET_DIRECTORY / "e175_r1_wall.msh"
 QUAD_SURFACE_FILE = (
-    ASSET_DIRECTORY / "embraer_175_panel_quad_dominant_high_quality.msh"
+    ASSET_DIRECTORY / "e175_quad_panel.msh"
 )
 
 requires_assets = pytest.mark.skipif(
@@ -89,7 +85,7 @@ def test_basic_and_advanced_examples_have_distinct_jobs():
     source = EXAMPLE_PATH.read_text(encoding="utf-8")
     advanced = ADVANCED_EXAMPLE_PATH.read_text(encoding="utf-8")
     assert "QUAD_SURFACE_MESH_FILE" not in source
-    assert "embraer_175_panel_quad_dominant_high_quality.msh" in advanced
+    assert "e175_quad_panel.msh" in advanced
     assert "surface_vertex_classification" in advanced
     assert "surface_projection_status" in advanced
     assert source.count("PolygonRegularization(") == 1
@@ -201,7 +197,7 @@ def test_example_deforms_the_triangle_wall_without_folds(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Recorder lifecycle: BSM3 never owns global CSDL state.
+# Recorder lifecycle: GAMMA never owns global CSDL state.
 # ---------------------------------------------------------------------------
 
 
@@ -276,7 +272,7 @@ class _Component:
 
 def _resolver():
     """Return the private external-coefficient resolver under test."""
-    from bsm3.core.boundary_surface_movement.geometry_model import (
+    from gamma_mdo.core.boundary_surface_movement.geometry_model import (
         _resolve_external_coefficients,
     )
 
@@ -449,7 +445,7 @@ def test_quad_panel_introduces_no_new_inverted_elements(tmp_path):
 
     # Pin all three unchanged-input facts, evaluated on the result's own
     # initial coordinates rather than read from the final report.
-    from bsm3.core.boundary_surface_movement import evaluate_mesh_quality
+    from gamma_mdo.core.boundary_surface_movement import evaluate_mesh_quality
 
     initial_quality = evaluate_mesh_quality(
         mesh=result.surface_mesh,
@@ -489,9 +485,9 @@ def test_quad_panel_introduces_no_new_inverted_elements(tmp_path):
 def test_external_coefficients_drive_the_real_pipeline(tmp_path):
     """A substantial relative external wing deformation, verified against FD.
 
-    This mirrors how another package drives BSM3: it imports the same STEP
+    This mirrors how another package drives GAMMA: it imports the same STEP
     body, deforms the coefficients with its own differentiable
-    parameterization, and hands the result to ``add_component``. BSM3 supplies
+    parameterization, and hands the result to ``add_component``. GAMMA supplies
     no transformation. Only the wing moves, so the intersection and motion
     chain is genuinely exercised rather than a global rigid translation.
     """
@@ -499,12 +495,12 @@ def test_external_coefficients_drive_the_real_pipeline(tmp_path):
 
     import lsdo_function_spaces as lfs
 
-    import bsm3
-    from bsm3.core.boundary_surface_movement import (
+    import gamma_mdo
+    from gamma_mdo.core.boundary_surface_movement import (
         stack_component_coefficients,
     )
 
-    wing_shift_metres = 0.35
+    wing_shift_meters = 0.35
 
     recorder = csdl.Recorder(inline=True)
     recorder.start()
@@ -520,7 +516,7 @@ def test_external_coefficients_drive_the_real_pipeline(tmp_path):
             imported = lfs.import_file_patched(STEP_FILE, parallelize=False)
         finally:
             os.chdir(previous_directory)
-        wing, tail, fuselage = bsm3.preprocessing.create_components(
+        wing, tail, fuselage = gamma_mdo.preprocessing.create_components(
             geometry=imported,
             search_names=["wing", "HT", "fuselage"],
         )
@@ -540,9 +536,9 @@ def test_external_coefficients_drive_the_real_pipeline(tmp_path):
             baseline = stack_component_coefficients(component)
             if name == "wing":
                 # Only the wing moves: a substantial chordwise shift built
-                # entirely outside BSM3.
+                # entirely outside GAMMA.
                 direction = np.zeros(baseline.shape)
-                direction[:, 0] = wing_shift_metres
+                direction[:, 0] = wing_shift_meters
                 target = baseline + shift * direction
             else:
                 target = baseline
@@ -627,7 +623,7 @@ def test_external_coefficients_drive_the_real_pipeline(tmp_path):
             best_error, best_step, best_fd = error, step, centered
     simulator[shift] = baseline_value
     print(
-        f"[external-fd] wing_shift={wing_shift_metres} "
+        f"[external-fd] wing_shift={wing_shift_meters} "
         f"analytic={analytic_value:.10e} fd={best_fd:.10e} "
         f"step={best_step:.0e} rel_error={best_error:.3e} "
         f"max_disp={max_displacement:.4f}"
@@ -649,8 +645,8 @@ def test_external_coefficients_with_whole_component_free_regions(tmp_path):
 
     import lsdo_function_spaces as lfs
 
-    import bsm3
-    from bsm3.core.boundary_surface_movement import (
+    import gamma_mdo
+    from gamma_mdo.core.boundary_surface_movement import (
         stack_component_coefficients,
     )
 
@@ -665,7 +661,7 @@ def test_external_coefficients_with_whole_component_free_regions(tmp_path):
             imported = lfs.import_file_patched(STEP_FILE, parallelize=False)
         finally:
             os.chdir(previous_directory)
-        wing, tail, fuselage = bsm3.preprocessing.create_components(
+        wing, tail, fuselage = gamma_mdo.preprocessing.create_components(
             geometry=imported,
             search_names=["wing", "HT", "fuselage"],
         )

@@ -4,7 +4,7 @@ import csdl_alpha as csdl
 import numpy as np
 import pytest
 
-from bsm3.core.boundary_surface_movement.fuel_burn import (
+from gamma_mdo.core.boundary_surface_movement.fuel_burn import (
     FuelBurnParameters,
     compute_fuel_burn,
 )

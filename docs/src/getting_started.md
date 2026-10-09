@@ -27,8 +27,8 @@ about the smallest possible runtime dependency set.
 | lsdo_function_spaces | `307ad3aabfff31c6fb44ddf51bc0dcc41a60c420` |
 
 ```bash
-conda create -n bsm3_py312_main python=3.12
-conda activate bsm3_py312_main
+conda create -n gamma_mdo python=3.12
+conda activate gamma_mdo
 
 # Install the complete tested dependency set. requirements-ci.txt contains the
 # exact CSDL_alpha revision shown in the table as well as the tested numerical,
@@ -84,17 +84,24 @@ seam identification. The first run populates it; later runs with the same
 geometry and mesh are substantially faster. Point it somewhere writable and
 outside your source checkout.
 
-### Which example assets ship with the repository
+### Example assets
 
-These are tracked and are enough to run the E175 example:
+The E175 geometry, its quad-dominant panel mesh, the R1 wall mesh and the
+Cessna 208 inputs ship with the package and are enough to run the surface
+examples. The large R1 and R5 volume meshes are downloaded on demand and
+verified by SHA-256:
 
-- `bsm3/core/boundary_surface_movement/embraer_175_no_winglets.stp`
-- `.../fluent_R1_tet_euler_volume_mesh/e175_fluent_R1_aircraft_wall_tri.msh`
-- `.../embraer_175_panel_quad_dominant_high_quality.msh`
-- `.../wall_surface.npz`
+```bash
+python -m gamma_mdo.assets list
+python -m gamma_mdo.assets download e175-r1-volume   # or e175-r5, or --all
+```
 
-Larger volume meshes, refinement-4 walls, and any private CFD case are **not**
-tracked. Tests that need them skip automatically when they are absent.
+Downloads are cached in `~/.cache/gamma/assets` (set `GAMMA_ASSET_DIR` to
+change it). In code, `gamma_mdo.assets.asset_path(name)` gives a file's location.
+Tests that need a downloaded mesh skip when it is absent. The assets are
+licensed under CC BY 4.0; see the
+[E175](../examples/e175/ASSETS.md) and
+[C208](../examples/cessna_208/ASSETS.md) asset records.
 
 ## Documentation is not yet hosted
 
@@ -102,7 +109,7 @@ This site builds from the repository. Build it locally with:
 
 ```bash
 python -m pip install -r docs/requirements.txt
-python -m sphinx -W --keep-going -b html docs /tmp/bsm3-docs-html
+python -m sphinx -W --keep-going -b html docs /tmp/gamma-mdo-docs-html
 ```
 
 There is no published Read the Docs deployment yet; `.readthedocs.yaml` is

@@ -9,7 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The full suite takes about 25-30 minutes on a hosted runner, mostly the
+    # C208 integration test with its finite-difference re-executions.
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -32,146 +34,162 @@ jobs:
       - name: Critical static checks
         run: |
           # Default Ruff selection over the complete retained production
-          # manifest -- every bsm3 path the four documentation steps below
+          # manifest -- every gamma_mdo path the four documentation steps below
           # cover -- plus the M0 test files. Kept literal and auditable; the
           # dirty/untracked research tree is deliberately excluded.
           python -m ruff check \
-            bsm3/__init__.py \
-            bsm3/component_parameters.py \
-            bsm3/core/__init__.py \
-            bsm3/core/boundary_surface_movement/__init__.py \
-            bsm3/core/boundary_surface_movement/cfd_mesh_dafoam_analysis.py \
-            bsm3/core/boundary_surface_movement/cfd_mesh_movement_test.py \
-            bsm3/core/boundary_surface_movement/constraints.py \
-            bsm3/core/boundary_surface_movement/current_graph_solve.py \
-            bsm3/core/boundary_surface_movement/dafoam_csdl.py \
-            bsm3/core/boundary_surface_movement/e175_derivative_ladder.py \
-            bsm3/core/boundary_surface_movement/elasticity.py \
-            bsm3/core/boundary_surface_movement/forward_only_fd_checker.py \
-            bsm3/core/boundary_surface_movement/free_region.py \
-            bsm3/core/boundary_surface_movement/fuel_burn.py \
-            bsm3/core/boundary_surface_movement/geometry.py \
-            bsm3/core/boundary_surface_movement/geometry_model.py \
-            bsm3/core/boundary_surface_movement/geometry_volume_backend.py \
-            bsm3/core/boundary_surface_movement/geometry_volume_mpi.py \
-            bsm3/core/boundary_surface_movement/geometry_volume_operation.py \
-            bsm3/core/boundary_surface_movement/graph_distance.py \
-            bsm3/core/boundary_surface_movement/intersections.py \
-            bsm3/core/boundary_surface_movement/load_stepping.py \
-            bsm3/core/boundary_surface_movement/mesh_motion_config.py \
-            bsm3/core/boundary_surface_movement/mesh_motion_pipeline.py \
-            bsm3/core/boundary_surface_movement/motion.py \
-            bsm3/core/boundary_surface_movement/ngon_affine.py \
-            bsm3/core/boundary_surface_movement/panel_aerodynamics.py \
-            bsm3/core/boundary_surface_movement/projection.py \
-            bsm3/core/boundary_surface_movement/quadratic_distortion.py \
-            bsm3/core/boundary_surface_movement/quality.py \
-            bsm3/core/boundary_surface_movement/rbf.py \
-            bsm3/core/boundary_surface_movement/run_dafoam_gmsh.py \
-            bsm3/core/boundary_surface_movement/spd_solve_custom_op.py \
-            bsm3/core/boundary_surface_movement/volume_mesh_motion.py \
-            bsm3/core/projections/function_set_closest_distance_custom_op.py \
-            bsm3/core/projections/function_set_evaluation_custom_op.py \
-            bsm3/core/projections/function_set_projection_custom_op.py \
-            bsm3/core/projections/orthogonality_projection_numpy.py \
-            bsm3/core/projections/warm_start_candidate_projection_numpy.py \
-            bsm3/core/projections/warm_start_projections.py \
-            bsm3/core/weighting_functions.py \
-            bsm3/mesh_motion.py \
-            bsm3/plotting.py \
-            bsm3/preprocessing/__init__.py \
-            bsm3/preprocessing/components.py \
-            bsm3/preprocessing/gmsh.py \
-            bsm3/preprocessing/intersections.py \
-            bsm3/preprocessing/mesh_io.py \
-            bsm3/preprocessing/movement.py \
-            bsm3/preprocessing/quad_conversion.py \
-            bsm3/preprocessing/stl.py \
-            bsm3/preprocessing/symmetry.py \
+            gamma_mdo/__init__.py \
+            gamma_mdo/assets.py \
+            gamma_mdo/component_parameters.py \
+            gamma_mdo/core/__init__.py \
+            gamma_mdo/core/boundary_surface_movement/__init__.py \
+            gamma_mdo/core/boundary_surface_movement/cessna_208_example.py \
+            gamma_mdo/core/boundary_surface_movement/cfd_mesh_movement_test.py \
+            gamma_mdo/core/boundary_surface_movement/constraints.py \
+            gamma_mdo/core/boundary_surface_movement/current_graph_solve.py \
+            gamma_mdo/core/boundary_surface_movement/dafoam_csdl.py \
+            gamma_mdo/core/boundary_surface_movement/elasticity.py \
+            gamma_mdo/core/boundary_surface_movement/forward_only_fd_checker.py \
+            gamma_mdo/core/boundary_surface_movement/free_region.py \
+            gamma_mdo/core/boundary_surface_movement/fuel_burn.py \
+            gamma_mdo/core/boundary_surface_movement/geometry.py \
+            gamma_mdo/core/boundary_surface_movement/geometry_model.py \
+            gamma_mdo/core/boundary_surface_movement/geometry_volume_backend.py \
+            gamma_mdo/core/boundary_surface_movement/geometry_volume_mpi.py \
+            gamma_mdo/core/boundary_surface_movement/geometry_volume_operation.py \
+            gamma_mdo/core/boundary_surface_movement/graph_distance.py \
+            gamma_mdo/core/boundary_surface_movement/intersections.py \
+            gamma_mdo/core/boundary_surface_movement/load_stepping.py \
+            gamma_mdo/core/boundary_surface_movement/mesh_motion_config.py \
+            gamma_mdo/core/boundary_surface_movement/mesh_motion_pipeline.py \
+            gamma_mdo/core/boundary_surface_movement/motion.py \
+            gamma_mdo/core/boundary_surface_movement/ngon_affine.py \
+            gamma_mdo/core/boundary_surface_movement/panel_aerodynamics.py \
+            gamma_mdo/core/boundary_surface_movement/projection.py \
+            gamma_mdo/core/boundary_surface_movement/quadratic_distortion.py \
+            gamma_mdo/core/boundary_surface_movement/quality.py \
+            gamma_mdo/core/boundary_surface_movement/rbf.py \
+            gamma_mdo/core/boundary_surface_movement/run_dafoam_gmsh.py \
+            gamma_mdo/core/boundary_surface_movement/spd_solve_custom_op.py \
+            gamma_mdo/core/boundary_surface_movement/volume_mesh_motion.py \
+            gamma_mdo/core/projections/function_set_closest_distance_custom_op.py \
+            gamma_mdo/core/projections/function_set_evaluation_custom_op.py \
+            gamma_mdo/core/projections/function_set_projection_custom_op.py \
+            gamma_mdo/core/projections/orthogonality_projection_numpy.py \
+            gamma_mdo/core/projections/warm_start_candidate_projection_numpy.py \
+            gamma_mdo/core/projections/surface_normals_numpy.py \
+            gamma_mdo/core/projections/warm_start_projections.py \
+            gamma_mdo/core/weighting_functions.py \
+            gamma_mdo/mesh_motion.py \
+            gamma_mdo/plotting.py \
+            gamma_mdo/preprocessing/__init__.py \
+            gamma_mdo/preprocessing/components.py \
+            gamma_mdo/preprocessing/gmsh.py \
+            gamma_mdo/preprocessing/intersections.py \
+            gamma_mdo/preprocessing/mesh_io.py \
+            gamma_mdo/preprocessing/movement.py \
+            gamma_mdo/preprocessing/quad_conversion.py \
+            gamma_mdo/preprocessing/stl.py \
+            gamma_mdo/preprocessing/symmetry.py \
             tests/test_derivative_gate.py \
+            tests/test_assets.py \
             tests/test_curated_assets.py \
-            tests/test_e175_driver_configuration.py
+            tests/test_e175_driver_configuration.py \
+            tests/test_cessna_208_strut_attachment_deformation.py \
+            tests/test_projection_chordwise_restore.py \
+            tests/test_projection_collapsed_spans.py \
+            tests/test_projection_creases.py \
+            tests/test_projection_normals.py \
+            examples/cessna_208_strut_attachment_deformation.py
 
       - name: Numpydoc checks for the M0 public surface
         run: |
           python -m ruff check --select D \
-            bsm3/preprocessing/mesh_io.py \
-            bsm3/preprocessing/__init__.py \
+            gamma_mdo/preprocessing/mesh_io.py \
+            gamma_mdo/preprocessing/__init__.py \
+            gamma_mdo/assets.py \
             tests/test_derivative_gate.py \
-            tests/test_curated_assets.py
+            tests/test_assets.py \
+            tests/test_curated_assets.py \
+            tests/test_cessna_208_strut_attachment_deformation.py \
+            tests/test_projection_chordwise_restore.py \
+            tests/test_projection_collapsed_spans.py \
+            tests/test_projection_creases.py \
+            tests/test_projection_normals.py
 
       - name: Numpydoc checks for the surface-motion core
         run: |
           python -m ruff check --select D \
-            bsm3/mesh_motion.py \
-            bsm3/core/boundary_surface_movement/geometry_model.py \
-            bsm3/core/boundary_surface_movement/mesh_motion_config.py \
-            bsm3/core/boundary_surface_movement/mesh_motion_pipeline.py \
-            bsm3/core/boundary_surface_movement/motion.py \
-            bsm3/core/boundary_surface_movement/elasticity.py \
-            bsm3/core/boundary_surface_movement/load_stepping.py \
-            bsm3/core/boundary_surface_movement/current_graph_solve.py \
-            bsm3/core/boundary_surface_movement/ngon_affine.py \
-            bsm3/core/boundary_surface_movement/panel_aerodynamics.py \
-            bsm3/core/boundary_surface_movement/quadratic_distortion.py \
-            bsm3/core/boundary_surface_movement/projection.py \
-            bsm3/core/boundary_surface_movement/quality.py \
-            bsm3/core/boundary_surface_movement/graph_distance.py \
-            bsm3/core/boundary_surface_movement/free_region.py \
-            bsm3/core/boundary_surface_movement/fuel_burn.py \
-            bsm3/core/boundary_surface_movement/constraints.py \
-            bsm3/core/boundary_surface_movement/spd_solve_custom_op.py \
-            bsm3/core/boundary_surface_movement/geometry.py \
-            bsm3/core/boundary_surface_movement/intersections.py
+            gamma_mdo/mesh_motion.py \
+            gamma_mdo/core/boundary_surface_movement/geometry_model.py \
+            gamma_mdo/core/boundary_surface_movement/mesh_motion_config.py \
+            gamma_mdo/core/boundary_surface_movement/mesh_motion_pipeline.py \
+            gamma_mdo/core/boundary_surface_movement/motion.py \
+            gamma_mdo/core/boundary_surface_movement/elasticity.py \
+            gamma_mdo/core/boundary_surface_movement/load_stepping.py \
+            gamma_mdo/core/boundary_surface_movement/current_graph_solve.py \
+            gamma_mdo/core/boundary_surface_movement/ngon_affine.py \
+            gamma_mdo/core/boundary_surface_movement/panel_aerodynamics.py \
+            gamma_mdo/core/boundary_surface_movement/quadratic_distortion.py \
+            gamma_mdo/core/boundary_surface_movement/projection.py \
+            gamma_mdo/core/boundary_surface_movement/quality.py \
+            gamma_mdo/core/boundary_surface_movement/graph_distance.py \
+            gamma_mdo/core/boundary_surface_movement/free_region.py \
+            gamma_mdo/core/boundary_surface_movement/fuel_burn.py \
+            gamma_mdo/core/boundary_surface_movement/constraints.py \
+            gamma_mdo/core/boundary_surface_movement/spd_solve_custom_op.py \
+            gamma_mdo/core/boundary_surface_movement/geometry.py \
+            gamma_mdo/core/boundary_surface_movement/intersections.py
 
       - name: Numpydoc checks for projection and preprocessing
         run: |
           python -m ruff check --select D \
-            bsm3/core/projections/function_set_closest_distance_custom_op.py \
-            bsm3/core/projections/function_set_evaluation_custom_op.py \
-            bsm3/core/projections/function_set_projection_custom_op.py \
-            bsm3/core/projections/orthogonality_projection_numpy.py \
-            bsm3/core/projections/warm_start_candidate_projection_numpy.py \
-            bsm3/core/projections/warm_start_projections.py \
-            bsm3/preprocessing/__init__.py \
-            bsm3/preprocessing/components.py \
-            bsm3/preprocessing/gmsh.py \
-            bsm3/preprocessing/intersections.py \
-            bsm3/preprocessing/mesh_io.py \
-            bsm3/preprocessing/movement.py \
-            bsm3/preprocessing/quad_conversion.py \
-            bsm3/preprocessing/stl.py \
-            bsm3/preprocessing/symmetry.py
+            gamma_mdo/core/projections/function_set_closest_distance_custom_op.py \
+            gamma_mdo/core/projections/function_set_evaluation_custom_op.py \
+            gamma_mdo/core/projections/function_set_projection_custom_op.py \
+            gamma_mdo/core/projections/orthogonality_projection_numpy.py \
+            gamma_mdo/core/projections/warm_start_candidate_projection_numpy.py \
+            gamma_mdo/core/projections/surface_normals_numpy.py \
+            gamma_mdo/core/projections/warm_start_projections.py \
+            gamma_mdo/preprocessing/__init__.py \
+            gamma_mdo/preprocessing/components.py \
+            gamma_mdo/preprocessing/gmsh.py \
+            gamma_mdo/preprocessing/intersections.py \
+            gamma_mdo/preprocessing/mesh_io.py \
+            gamma_mdo/preprocessing/movement.py \
+            gamma_mdo/preprocessing/quad_conversion.py \
+            gamma_mdo/preprocessing/stl.py \
+            gamma_mdo/preprocessing/symmetry.py
 
       - name: Numpydoc checks for drivers, volume motion, and MPI
         run: |
           python -m ruff check --select D \
-            bsm3/__init__.py \
-            bsm3/component_parameters.py \
-            bsm3/core/__init__.py \
-            bsm3/core/boundary_surface_movement/__init__.py \
-            bsm3/core/boundary_surface_movement/cfd_mesh_dafoam_analysis.py \
-            bsm3/core/boundary_surface_movement/cfd_mesh_movement_test.py \
-            bsm3/core/boundary_surface_movement/dafoam_csdl.py \
-            bsm3/core/boundary_surface_movement/e175_derivative_ladder.py \
-            bsm3/core/boundary_surface_movement/forward_only_fd_checker.py \
-            bsm3/core/boundary_surface_movement/geometry_volume_backend.py \
-            bsm3/core/boundary_surface_movement/geometry_volume_mpi.py \
-            bsm3/core/boundary_surface_movement/geometry_volume_operation.py \
-            bsm3/core/boundary_surface_movement/rbf.py \
-            bsm3/core/boundary_surface_movement/run_dafoam_gmsh.py \
-            bsm3/core/boundary_surface_movement/volume_mesh_motion.py \
-            bsm3/core/weighting_functions.py \
-            bsm3/plotting.py
+            gamma_mdo/__init__.py \
+            gamma_mdo/component_parameters.py \
+            gamma_mdo/core/__init__.py \
+            gamma_mdo/core/boundary_surface_movement/__init__.py \
+            gamma_mdo/core/boundary_surface_movement/cessna_208_example.py \
+            gamma_mdo/core/boundary_surface_movement/cfd_mesh_movement_test.py \
+            gamma_mdo/core/boundary_surface_movement/dafoam_csdl.py \
+            gamma_mdo/core/boundary_surface_movement/forward_only_fd_checker.py \
+            gamma_mdo/core/boundary_surface_movement/geometry_volume_backend.py \
+            gamma_mdo/core/boundary_surface_movement/geometry_volume_mpi.py \
+            gamma_mdo/core/boundary_surface_movement/geometry_volume_operation.py \
+            gamma_mdo/core/boundary_surface_movement/rbf.py \
+            gamma_mdo/core/boundary_surface_movement/run_dafoam_gmsh.py \
+            gamma_mdo/core/boundary_surface_movement/volume_mesh_motion.py \
+            gamma_mdo/core/weighting_functions.py \
+            gamma_mdo/plotting.py \
+            examples/cessna_208_strut_attachment_deformation.py
 
       - name: Documentation build
         run: |
-          # Docs-only dependencies; the site never imports bsm3, so the
+          # Docs-only dependencies; the site never imports gamma_mdo, so the
           # validated geometry stack is deliberately not installed here.
           python -m pip install -r docs/requirements.txt
           # Warnings are errors. Build outside the repository so the tree
           # stays clean.
-          python -m sphinx -W --keep-going -b html docs "${RUNNER_TEMP}/bsm3-docs-html"
+          python -m sphinx -W --keep-going -b html docs "${RUNNER_TEMP}/gamma-mdo-docs-html"
 
       - name: Fast derivative gate
         run: python -m pytest -q tests/test_derivative_gate.py

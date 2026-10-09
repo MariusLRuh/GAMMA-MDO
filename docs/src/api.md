@@ -1,12 +1,12 @@
 # API reference
 
-`bsm3.mesh_motion` is the intended public namespace and is deliberately
+`gamma_mdo.mesh_motion` is the intended public namespace and is deliberately
 compact. Solver-assembly types, component records, projection callbacks, and
 polygon helpers stay internal, because a caller never needs them to deform a
 surface mesh.
 
 ```python
-import bsm3.mesh_motion as mm
+import gamma_mdo.mesh_motion as mm
 ```
 
 Everything below is re-exported from that module.
@@ -14,7 +14,7 @@ Everything below is re-exported from that module.
 ## Public export inventory
 
 This list is the complete supported namespace. A structural test compares it
-exactly with `bsm3.mesh_motion.__all__`; semantic descriptions and signatures
+exactly with `gamma_mdo.mesh_motion.__all__`; semantic descriptions and signatures
 are still reviewed against the implementation.
 
 <!-- BEGIN GAMMA PUBLIC EXPORTS -->

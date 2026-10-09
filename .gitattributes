@@ -1,0 +1,6 @@
+gamma_mdo/core/boundary_surface_movement/e175.stp -diff
+gamma_mdo/core/boundary_surface_movement/e175_quad_panel.msh -diff
+gamma_mdo/core/boundary_surface_movement/e175_r1_wall.msh -diff
+gamma_mdo/core/boundary_surface_movement/e175_r1_wall.volume_map.npz -diff
+gamma_mdo/core/boundary_surface_movement/cessna_208.stp -diff
+gamma_mdo/core/boundary_surface_movement/cessna_208.msh -diff

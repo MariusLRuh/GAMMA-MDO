@@ -1,7 +1,7 @@
 """Sphinx configuration for the GAMMA documentation site.
 
 The build is deliberately hermetic: it renders hand-written Markdown only. It
-does not import :mod:`bsm3`, execute the E175 example, or reach for DAFoam,
+does not import :mod:`gamma_mdo`, execute the E175 example, or reach for DAFoam,
 OpenFOAM, VortexAD, mpi4py, or any untracked asset. That keeps the site
 buildable from ``docs/requirements.txt`` alone.
 """
@@ -19,12 +19,12 @@ copyright = "2026, GAMMA contributors"
 
 
 def _read_version() -> str:
-    """Read ``bsm3.__version__`` from source without importing the package.
+    """Read ``gamma_mdo.__version__`` from source without importing the package.
 
-    Importing ``bsm3`` would pull in the whole geometry stack, which the
+    Importing ``gamma_mdo`` would pull in the whole geometry stack, which the
     documentation environment deliberately does not install.
     """
-    init = Path(__file__).resolve().parents[1] / "bsm3" / "__init__.py"
+    init = Path(__file__).resolve().parents[1] / "gamma_mdo" / "__init__.py"
     match = re.search(
         r"^__version__\s*=\s*['\"]([^'\"]+)['\"]", init.read_text(), re.MULTILINE
     )

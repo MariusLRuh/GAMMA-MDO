@@ -2,7 +2,7 @@
 
 The script walks the five stages the pipeline performs, in order:
 
-1. **Choose geometry and mesh files.** A STEP body supplies the outer mould
+1. **Choose geometry and mesh files.** A STEP body supplies the outer mold
    line; a surface mesh supplies the nodes that must follow it.
 2. **Define design variables and component motion.** Each design variable is a
    differentiable control. Components declare how they respond, and
@@ -11,7 +11,7 @@ The script walks the five stages the pipeline performs, in order:
    weighting for the graph-Laplacian solve.
 4. **Run the differentiable mesh-motion model.** Intersections are recomputed,
    the interior is propagated, graph-moved nodes are reprojected onto the
-   deformed outer mould line, and exact intersections are retained.
+   deformed outer mold line, and exact intersections are retained.
 5. **Inspect the result.** Fold, inversion, and quality diagnostics come back
    on the result object.
 
@@ -19,7 +19,7 @@ This script deliberately demonstrates the **optional** built-in
 lifting-surface and body helpers, because they keep stage 2 short and
 readable. They are not the required entry point. An external parameterization
 replaces stage 2 with :meth:`GeometryModel.add_component`, handing over its own
-deformed coefficients; stages 3-5 and the entire downstream BSM3 pipeline —
+deformed coefficients; stages 3-5 and the entire downstream GAMMA pipeline —
 intersections, graph motion, reprojection, and diagnostics — are identical
 either way.
 
@@ -36,21 +36,17 @@ import tempfile
 
 import csdl_alpha as csdl
 
-import bsm3.mesh_motion as mm
+import gamma_mdo.mesh_motion as mm
 
 ASSETS = (
     Path(__file__).resolve().parents[1]
-    / "bsm3"
+    / "gamma_mdo"
     / "core"
     / "boundary_surface_movement"
 )
-STEP_FILE = ASSETS / "embraer_175_no_winglets.stp"
-SURFACE_MESH_FILE = (
-    ASSETS
-    / "fluent_R1_tet_euler_volume_mesh"
-    / "e175_fluent_R1_aircraft_wall_tri.msh"
-)
-CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "bsm3_e175_example_cache"
+STEP_FILE = ASSETS / "e175.stp"
+SURFACE_MESH_FILE = ASSETS / "e175_r1_wall.msh"
+CACHE_DIRECTORY = Path(tempfile.gettempdir()) / "gamma_mdo_e175_example_cache"
 
 # Full-size deformation targets, and the neutral value each one moves from.
 # ``deformation_scale`` interpolates between the two, so one number controls
@@ -82,7 +78,7 @@ def main(
     Parameters
     ----------
     geometry_file
-        STEP body defining the outer mould line.
+        STEP body defining the outer mold line.
     surface_mesh_file
         Surface mesh whose nodes follow the deformed geometry.
     cache_directory
@@ -118,7 +114,7 @@ def main(
     # Built-in helpers are used here for readability. An external
     # parameterization would instead call geometry.add_component(...) with its
     # own deformed coefficients; nothing below this stage changes.
-    # The recorder is created, started, and stopped here: BSM3 never owns
+    # The recorder is created, started, and stopped here: GAMMA never owns
     # global CSDL state. The try begins immediately so a failure in any stage
     # below still stops it.
     recorder = csdl.Recorder(inline=True)

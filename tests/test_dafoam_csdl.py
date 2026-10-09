@@ -6,13 +6,13 @@ import pytest
 
 import csdl_alpha as csdl
 
-from bsm3.core.boundary_surface_movement.dafoam_csdl import (
+from gamma_mdo.core.boundary_surface_movement.dafoam_csdl import (
     DAFoamAnalysisOperation,
     PYDAFoamBackend,
     add_csdl_inputs_to_da_options,
     build_local_volume_coordinate_map,
 )
-from bsm3.core.boundary_surface_movement.run_dafoam_gmsh import (
+from gamma_mdo.core.boundary_surface_movement.run_dafoam_gmsh import (
     FlowConfig,
     build_da_options,
     set_control_dict_max_iterations,
@@ -508,7 +508,7 @@ def test_build_da_options_applies_both_previously_dead_flow_fields():
 
 def test_wall_function_cli_flag_defaults_to_the_dataclass_value():
     """Accept both flag forms and default to FlowConfig's own value."""
-    from bsm3.core.boundary_surface_movement.run_dafoam_gmsh import make_parser
+    from gamma_mdo.core.boundary_surface_movement.run_dafoam_gmsh import make_parser
 
     parser = make_parser()
     required = ["--reuse-openfoam-mesh"]
@@ -523,87 +523,6 @@ def test_wall_function_cli_flag_defaults_to_the_dataclass_value():
     )
 
 
-def test_rank0_chain_constructs_the_backend_through_the_current_api(monkeypatch):
-    """Reach rank-0 backend construction inside ``build_cfd_analysis_rank0``.
-
-    Only the expensive I/O and the downstream custom operations are mocked; the
-    function under test runs for real up to and including the
-    ``MeshMotionVolumeBackend`` construction. That proves the parameterization
-    factory name resolves and the constructor keyword is valid, which is what
-    M1.1 broke. No DAFoam, OpenFOAM, MPI, CAD asset, or volume mesh is needed.
-    """
-    import dataclasses
-
-    from bsm3.core.boundary_surface_movement import cfd_mesh_dafoam_analysis as driver
-    from bsm3.core.boundary_surface_movement.mesh_motion_config import (
-        MeshMotion,
-        VolumeMotion,
-    )
-
-    captured = {}
-
-    class _RecordingBackend:
-        def __init__(self, *args, **kwargs):
-            captured["args"] = args
-            captured["kwargs"] = kwargs
-            self.design_variable_names = ()
-            self.output_shape = (4, 3)
-
-    class _StopHere(RuntimeError):
-        """Raised once construction has been observed."""
-
-    def _stop(*args, **kwargs):
-        raise _StopHere
-
-    # Expensive I/O only.
-    monkeypatch.setattr(driver, "read_gmsh_volume_point_count", lambda path: 4)
-    monkeypatch.setattr(driver, "MeshMotionVolumeBackend", _RecordingBackend)
-    # Downstream custom operation: stop as soon as the backend exists.
-    monkeypatch.setattr(driver, "GeometryVolumeOperation", _stop)
-
-    class _SerialComm:
-        rank = 0
-        size = 1
-
-        def bcast(self, obj, root=0):
-            return obj
-
-    recorder = csdl.Recorder(inline=True)
-    recorder.start()
-    try:
-        geometry = driver.create_geometry_model()
-        mesh_motion = MeshMotion(
-            volume=dataclasses.replace(
-                MeshMotion().volume, mode="elasticity", load_mode="final"
-            )
-        )
-        with pytest.raises(_StopHere):
-            driver.build_cfd_analysis_rank0(
-                recorder,
-                driver.MODEL_FILES,
-                geometry,
-                mesh_motion,
-                driver.FLOW,
-                backend=None,
-                comm=_SerialComm(),
-                geometry_values=driver.GEOMETRY_VALUES,
-            )
-    finally:
-        recorder.stop()
-
-    kwargs = captured["kwargs"]
-    # The current constructor keyword, not the removed model_files spelling.
-    assert "input_files" in kwargs
-    assert "model_files" not in kwargs
-    assert kwargs["input_files"] is driver.MODEL_FILES
-    assert kwargs["pipeline_config"] is mesh_motion
-    assert kwargs["aerodynamic_volume_method"] == "elasticity"
-    # The factory is the real, defined function.
-    assert (
-        kwargs["parameterization_factory"]
-        is driver.create_geometry_parameterization_from_variables
-    )
-    assert callable(kwargs["parameterization_factory"])
 
 
 def test_run_dafoam_gmsh_communicator_annotations_resolve_without_mpi():
@@ -615,7 +534,7 @@ def test_run_dafoam_gmsh_communicator_annotations_resolve_without_mpi():
     """
     import typing
 
-    from bsm3.core.boundary_surface_movement import run_dafoam_gmsh as module
+    from gamma_mdo.core.boundary_surface_movement import run_dafoam_gmsh as module
 
     assert not hasattr(module, "MPI"), "mpi4py must not be imported eagerly"
 

@@ -1,6 +1,6 @@
 import csdl_alpha as csdl
 import lsdo_function_spaces as lfs
-import bsm3
+import gamma_mdo
 from pathlib import Path
 import numpy as np
 from typing import Optional
@@ -144,7 +144,7 @@ if __name__ == "__main__":
         points_csdl.set_as_design_variable()
 
     # 'project' and 'compute_vjp' of instance below are called in the custom op
-    projection_model = bsm3.FunctionSetProjectionModel(
+    projection_model = gamma_mdo.FunctionSetProjectionModel(
         function_set=wing_fun_set,
         warm_start_nu=25, # controls per-patch triangulation resolution
         warm_start_nv=25,
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     )
 
     if check_derivatives:
-        sdf_op = bsm3.FunctionSetClosestDistanceOperation(model=projection_model)
+        sdf_op = gamma_mdo.FunctionSetClosestDistanceOperation(model=projection_model)
         sdf_values = sdf_op.evaluate(coefficients=reshaped_stacked_coeffs, points=points_csdl)
 
         first_der = csdl.derivative(sdf_values, points_csdl)
@@ -185,7 +185,7 @@ if __name__ == "__main__":
         slice_points = np.vstack(points_list)
         slice_points_csdl = csdl.Variable(name="slice_points", value=slice_points)
 
-        sdf_op = bsm3.FunctionSetClosestDistanceOperation(model=projection_model)
+        sdf_op = gamma_mdo.FunctionSetClosestDistanceOperation(model=projection_model)
         sdf_values = sdf_op.evaluate(coefficients=reshaped_stacked_coeffs, points=slice_points_csdl)
         
         slice_values = []

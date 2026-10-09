@@ -2,16 +2,16 @@
 
 import numpy as np
 
-from bsm3.core.boundary_surface_movement import (
+from gamma_mdo.core.boundary_surface_movement import (
     CurrentGraphModel,
     CurrentGraphNgonAffineModel,
     NgonAffineAssembler,
     NgonAffineConfig,
 )
-from bsm3.core.boundary_surface_movement.ngon_affine import (
+from gamma_mdo.core.boundary_surface_movement.ngon_affine import (
     _affine_residual_projector,
 )
-from bsm3.preprocessing import MeshData
+from gamma_mdo.preprocessing import MeshData
 
 
 def _single_cell_mesh(vertices, cell_type):
