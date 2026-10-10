@@ -169,3 +169,6 @@ gamma_mdo/core/boundary_surface_movement/e175_derivative_ladder.py
 gamma_mdo/core/boundary_surface_movement/DAFOAM_MPI_RANK0_HANDOFF.md
 gamma_mdo/core/boundary_surface_movement/slurm/
 tests/test_dafoam_driver.py
+
+# Default output of examples/cessna_208_geometry_to_panel.py.
+/c208_results/

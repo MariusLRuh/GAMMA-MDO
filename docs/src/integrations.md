@@ -46,7 +46,11 @@ package is absent. No real panel solve is claimed as a standard-CI result.
 The adapter accepts triangle/quad connectivity, derives adjacency and trailing
 edges from the undeformed curated mesh, rejects non-converged OML projections
 by default, and registers `CL`, `CDi`, `L`, and `Di` in
-`MeshMotionResult.aerodynamic_outputs`. The caller owns the active recorder;
+`MeshMotionResult.aerodynamic_outputs`, plus `CDi_Trefftz` and `Di_Trefftz`
+with `PanelCondition(drag_type="Trefftz")`. It also returns the per-panel
+pressure coefficients and doublet strengths. The
+[Cessna 208 CAD-to-panel example](cessna_208_geometry_to_panel.md) runs a real
+solve on a 30,627-panel mesh; that run was checked locally, not in CI. The caller owns the active recorder;
 the adapter never starts or stops it.
 
 ### Mesh generation — separate

@@ -4,7 +4,7 @@ import contextlib
 
 import csdl_alpha as csdl
 import numpy as np
-from examples import cessna_208_geometry_parameterization as example
+from examples import cessna_208_geometry_to_panel as example
 from gamma_mdo.core.boundary_surface_movement import stack_component_coefficients_numpy
 from gamma_mdo.core.boundary_surface_movement.cessna_208_geometry_parameterization import (
     parameterize_c208_geometry,

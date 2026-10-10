@@ -11,6 +11,10 @@
 #   csdl_alpha
 #   lsdo_function_spaces
 #   jax
+#
+# Prerequisite of the C208 geometry-to-panel example (install with --no-deps;
+# it imports vedo):
+#   lsdo_geo @ git+https://github.com/LSDOlab/lsdo_geo.git@3e9cb8872bfb1a4116757de3f436d6ac3f5476c9
 #   gmsh
 #
 # Additional prerequisites for the DAFoam coupling are supplied by the

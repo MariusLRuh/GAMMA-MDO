@@ -29,6 +29,9 @@ jobs:
           python -m pip install -r requirements-ci.txt
           python -m pip install --no-deps \
             "lsdo_function_spaces @ git+https://github.com/LSDOlab/lsdo_function_spaces.git@307ad3aabfff31c6fb44ddf51bc0dcc41a60c420"
+          # lsdo_geo parameterizes the C208 CAD in the geometry-to-panel example.
+          python -m pip install --no-deps \
+            "lsdo_geo @ git+https://github.com/LSDOlab/lsdo_geo.git@3e9cb8872bfb1a4116757de3f436d6ac3f5476c9"
           python -m pip install --no-deps -e .
 
       - name: Critical static checks
@@ -44,6 +47,7 @@ jobs:
             gamma_mdo/core/__init__.py \
             gamma_mdo/core/boundary_surface_movement/__init__.py \
             gamma_mdo/core/boundary_surface_movement/cessna_208_example.py \
+            gamma_mdo/core/boundary_surface_movement/cessna_208_geometry_parameterization.py \
             gamma_mdo/core/boundary_surface_movement/cfd_mesh_movement_test.py \
             gamma_mdo/core/boundary_surface_movement/constraints.py \
             gamma_mdo/core/boundary_surface_movement/current_graph_solve.py \
@@ -96,11 +100,14 @@ jobs:
             tests/test_curated_assets.py \
             tests/test_e175_driver_configuration.py \
             tests/test_cessna_208_strut_attachment_deformation.py \
+            tests/test_cessna_208_geometry_parameterization.py \
+            tests/test_cessna_208_geometry_to_panel.py \
             tests/test_projection_chordwise_restore.py \
             tests/test_projection_collapsed_spans.py \
             tests/test_projection_creases.py \
             tests/test_projection_normals.py \
-            examples/cessna_208_strut_attachment_deformation.py
+            examples/cessna_208_strut_attachment_deformation.py \
+            examples/cessna_208_geometry_to_panel.py
 
       - name: Numpydoc checks for the M0 public surface
         run: |
@@ -112,6 +119,8 @@ jobs:
             tests/test_assets.py \
             tests/test_curated_assets.py \
             tests/test_cessna_208_strut_attachment_deformation.py \
+            tests/test_cessna_208_geometry_parameterization.py \
+            tests/test_cessna_208_geometry_to_panel.py \
             tests/test_projection_chordwise_restore.py \
             tests/test_projection_collapsed_spans.py \
             tests/test_projection_creases.py \
@@ -169,6 +178,7 @@ jobs:
             gamma_mdo/core/__init__.py \
             gamma_mdo/core/boundary_surface_movement/__init__.py \
             gamma_mdo/core/boundary_surface_movement/cessna_208_example.py \
+            gamma_mdo/core/boundary_surface_movement/cessna_208_geometry_parameterization.py \
             gamma_mdo/core/boundary_surface_movement/cfd_mesh_movement_test.py \
             gamma_mdo/core/boundary_surface_movement/dafoam_csdl.py \
             gamma_mdo/core/boundary_surface_movement/forward_only_fd_checker.py \
@@ -180,7 +190,8 @@ jobs:
             gamma_mdo/core/boundary_surface_movement/volume_mesh_motion.py \
             gamma_mdo/core/weighting_functions.py \
             gamma_mdo/plotting.py \
-            examples/cessna_208_strut_attachment_deformation.py
+            examples/cessna_208_strut_attachment_deformation.py \
+            examples/cessna_208_geometry_to_panel.py
 
       - name: Documentation build
         run: |
