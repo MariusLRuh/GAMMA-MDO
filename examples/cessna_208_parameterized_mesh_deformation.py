@@ -38,15 +38,20 @@ OUT = ROOT / "c208_parameterized_mesh_results"
 # The design targets come from the geometry-only example, so both scripts use
 # the same five editable values. Leave visualization off in automated runs.
 VISUALIZE = True
+# With VISUALIZE, also open a baseline/deformed view of every seam's vertices.
+SHOW_SEAM_VERTICES = True
 LOAD_STEPS = 1
 WING_FREE_REGION = {"y": (0.10, 0.90, "abs")}
 FUSELAGE_FREE_REGION = {"x": (0.05, 0.95, "extent")}
 STRUT_VERTICES_FREE = True
 STIFFENING_EXPONENT = 1.5
-NGON_REGULARIZATION_WEIGHT = 3.0
+NGON_REGULARIZATION_WEIGHT = 30.0
 WING_LEADING_EDGE_HOLD_M = 0.08
 WING_LEADING_EDGE_FADE_M = 0.16
 NO_FREE_VERTICES = {"x": (0.0, 0.0, "extent")}
+# Same form as WING_FREE_REGION, normalized by the stab's own semispan, e.g.
+# {"y": (0., 0.8, "abs")} frees the inboard 80%. The default frees no vertex.
+STAB_FREE_REGION = NO_FREE_VERTICES
 COEFFICIENT_ORDER = ("strut", "wing", "fuselage", "stab")
 # The input mesh's wing-root trailing edge sits up to 3.4 mm off the fuselage
 # CAD, beyond the default 2 mm seam tolerance. 4 mm selects exactly the mesh's
@@ -103,6 +108,72 @@ def _deformed_seam_summary(result, graph):
     return summaries
 
 
+SEAM_COLORS = {
+    "strut_wing": "orange",
+    "strut_fuselage": "gold",
+    "wing_fuselage": "limegreen",
+    "stab_fuselage": "magenta",
+}
+
+
+def _quads_folded_across_seams(triangles, quads, groups):
+    """Return cell ids of quads whose diagonal, not an edge, lies on a seam."""
+    folded = []
+    for ids in groups.values():
+        on_seam = np.isin(quads, np.asarray(ids, dtype=np.int64))
+        for corner in (0, 1):
+            diagonal = on_seam[:, corner] & on_seam[:, corner + 2]
+            off_diagonal = ~on_seam[:, corner + 1] & ~on_seam[:, (corner + 3) % 4]
+            folded.append(np.flatnonzero(diagonal & off_diagonal))
+    return len(triangles) + np.unique(np.concatenate(folded))
+
+
+def _plot_seam_vertices(result):
+    """Show every seam's vertices on the baseline (left) and deformed (right) surface.
+
+    Quads folded across a seam are cyan: the input mesh has no edge along the
+    junction there, so consecutive seam vertices are opposite quad corners.
+    """
+    import pyvista as pv
+
+    blocks = result.surface_mesh.cell_blocks
+    # Triangles then quads, the cell order of the inversion report.
+    triangles = np.asarray(blocks.get("triangle", np.empty((0, 3))), dtype=np.int64)
+    quads = np.asarray(blocks.get("quad", np.empty((0, 4))), dtype=np.int64)
+    faces = np.hstack([
+        np.column_stack([np.full(len(cells), cells.shape[1]), cells]).ravel()
+        for cells in (triangles, quads)
+    ])
+    groups = result.surface_vertex_classification.intersection_vertex_ids
+    folded = _quads_folded_across_seams(triangles, quads, groups)
+    inverted = np.asarray(result.surface_inversion_report.inverted_element_ids, dtype=np.int64)
+    plotter = pv.Plotter(shape=(1, 2), window_size=(1800, 900))
+    for column, (title, points) in enumerate((
+        ("baseline", result.initial_surface_coordinates),
+        ("deformed", result.surface_coordinates.value),
+    )):
+        plotter.subplot(0, column)
+        surface = pv.PolyData(np.asarray(points, dtype=float), faces)
+        plotter.add_mesh(surface, color="lightgray", show_edges=True, edge_color="black", line_width=0.3)
+        if folded.size:
+            plotter.add_mesh(
+                surface.extract_cells(folded), color="cyan", show_edges=True,
+                edge_color="black", label=f"quads folded across a seam ({folded.size})",
+            )
+        if title == "deformed" and inverted.size:
+            plotter.add_mesh(surface.extract_cells(inverted), color="red", label="inverted cells")
+        for name, ids in groups.items():
+            plotter.add_points(
+                surface.points[np.asarray(ids, dtype=np.int64)],
+                color=SEAM_COLORS.get(name, "blue"), point_size=10,
+                render_points_as_spheres=True, label=f"{name} ({len(ids)})",
+            )
+        plotter.add_legend()
+        plotter.add_text(f"{title} surface: seam vertices", font_size=10)
+    plotter.link_views()
+    plotter.show()
+
+
 def main(*, output_directory=None, visualize=None, targets=None):
     """Solve CAD controls, deform the surface mesh, and report seam/quality checks."""
     output_directory = Path(OUT if output_directory is None else output_directory)
@@ -130,7 +201,7 @@ def main(*, output_directory=None, visualize=None, targets=None):
             ("strut", "Struts", None if STRUT_VERTICES_FREE else NO_FREE_VERTICES),
             ("wing", "MainWing", WING_FREE_REGION),
             ("fuselage", "FuselageGeom", FUSELAGE_FREE_REGION),
-            ("stab", "Stab", NO_FREE_VERTICES),
+            ("stab", "Stab", STAB_FREE_REGION),
         ):
             geometry.add_component(
                 name=name,
@@ -164,7 +235,7 @@ def main(*, output_directory=None, visualize=None, targets=None):
                 polygon_regularization=mm.PolygonRegularization(
                     weight=NGON_REGULARIZATION_WEIGHT
                 ),
-                distance_weighting=mm.DistanceWeighting(enabled=False),
+                distance_weighting=mm.DistanceWeighting(enabled=True),
             ),
             quality=mm.QualityChecks(surface=True, fail_on_surface_inversion=False),
             visualization=mm.Visualization(enabled=visualize),
@@ -216,6 +287,8 @@ def main(*, output_directory=None, visualize=None, targets=None):
             json.dumps(report, indent=2) + "\n"
         )
         print(json.dumps(report, indent=2), flush=True)
+        if visualize and SHOW_SEAM_VERTICES:
+            _plot_seam_vertices(result)
         return result, graph, report
     finally:
         recorder.stop()

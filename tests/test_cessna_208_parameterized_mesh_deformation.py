@@ -59,3 +59,18 @@ def test_parameterized_geometry_moves_the_surface_and_recomputes_seams(tmp_path)
         assert movement[mesh["strut_ids"]].max() > 0.03
     saved = json.loads((tmp_path / "c208_parameterized_mesh_report.json").read_text())
     assert saved["targets"] == targets
+
+
+def test_quads_folded_across_a_seam_are_found_by_their_diagonal():
+    """A quad counts only when the seam runs along its diagonal, not an edge."""
+    triangles = np.array([[0, 1, 2]])
+    quads = np.array([
+        [10, 11, 12, 13],  # seam 10-12 is the diagonal: folded
+        [14, 12, 16, 15],  # seam 12-15 is the other diagonal: folded
+        [10, 12, 17, 18],  # seam 10-12 is an edge: not folded
+        [10, 12, 15, 19],  # three seam corners: not folded
+    ])
+    folded = example._quads_folded_across_seams(
+        triangles, quads, {"wing_fuselage": np.array([10, 12, 15])}
+    )
+    assert folded.tolist() == [1, 2]
