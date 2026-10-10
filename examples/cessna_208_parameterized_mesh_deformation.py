@@ -174,8 +174,12 @@ def _plot_seam_vertices(result):
     plotter.show()
 
 
-def main(*, output_directory=None, visualize=None, targets=None):
-    """Solve CAD controls, deform the surface mesh, and report seam/quality checks."""
+def main(*, output_directory=None, visualize=None, targets=None, recorder=None):
+    """Solve CAD controls, deform the surface mesh, and report seam/quality checks.
+
+    Pass an active ``recorder`` to keep the graph open for further analysis,
+    such as a panel solve; otherwise one is started and stopped here.
+    """
     output_directory = Path(OUT if output_directory is None else output_directory)
     visualize = VISUALIZE if visualize is None else visualize
     targets = _targets_from_design_example() if targets is None else dict(targets)
@@ -184,8 +188,10 @@ def main(*, output_directory=None, visualize=None, targets=None):
     cache = output_directory / "cache"
     cache.mkdir(parents=True, exist_ok=True)
 
-    recorder = csdl.Recorder(inline=True)
-    recorder.start()
+    owns_recorder = recorder is None
+    if owns_recorder:
+        recorder = csdl.Recorder(inline=True)
+        recorder.start()
     try:
         geometry = mm.GeometryModel()
         controls = {
@@ -291,7 +297,8 @@ def main(*, output_directory=None, visualize=None, targets=None):
             _plot_seam_vertices(result)
         return result, graph, report
     finally:
-        recorder.stop()
+        if owns_recorder:
+            recorder.stop()
 
 
 if __name__ == "__main__":

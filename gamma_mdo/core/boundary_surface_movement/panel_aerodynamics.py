@@ -16,7 +16,8 @@ import numpy as np
 
 
 VORTEXAD_REPOSITORY = "https://github.com/LSDOlab/VortexAD.git"
-VORTEXAD_REVISION = "8c5bc86fda5fa1e359fecde24c6c6e8527c773b5"
+VORTEXAD_REVISION = "c8027dfa137445ce7a1ba34bd3644d099111f770"
+DRAG_TYPES = ("pressure", "Trefftz")
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,10 @@ class PanelCondition:
         Zero-based node-index pairs excluded from trailing-edge detection.
     require_converged_projection
         Whether any non-converged OML projection rejects the panel solve.
+    drag_type
+        ``"pressure"`` integrates surface pressure for induced drag;
+        ``"Trefftz"`` additionally evaluates it in the Trefftz plane behind
+        the wake.
     """
 
     reference_area_m2: float | csdl.Variable
@@ -57,6 +62,7 @@ class PanelCondition:
     trailing_edge_angle_degrees: float = 125.0
     trailing_edge_edges_to_ignore: tuple[tuple[int, int], ...] = ()
     require_converged_projection: bool = True
+    drag_type: str = "pressure"
 
     def __post_init__(self) -> None:
         """Validate constant settings without evaluating symbolic inputs."""
@@ -70,6 +76,8 @@ class PanelCondition:
             value = getattr(self, name)
             if not isinstance(value, csdl.Variable) and float(value) <= 0.0:
                 raise ValueError(f"{name} must be positive.")
+        if self.drag_type not in DRAG_TYPES:
+            raise ValueError(f"drag_type must be one of {DRAG_TYPES}.")
         if not 0.0 < self.trailing_edge_angle_degrees < 180.0:
             raise ValueError(
                 "trailing_edge_angle_degrees must lie strictly between 0 and 180."
@@ -96,21 +104,39 @@ class PanelAerodynamicOutputs:
         Integrated lift in newtons.
     induced_drag_newton
         Integrated induced drag in newtons.
+    pressure_coefficient
+        Pressure coefficient per panel, shape ``(1, num_panels)``. Panels are
+        the surface triangles followed by the quads, in mesh order.
+    doublet_strength
+        Doublet strength per panel, in the same order.
+    trefftz_induced_drag_coefficient
+        Trefftz-plane induced-drag coefficient, or ``None`` unless
+        ``PanelCondition.drag_type`` is ``"Trefftz"``.
+    trefftz_induced_drag_newton
+        Trefftz-plane induced drag in newtons, or ``None`` likewise.
     """
 
     lift_coefficient: csdl.Variable
     induced_drag_coefficient: csdl.Variable
     lift_newton: csdl.Variable
     induced_drag_newton: csdl.Variable
+    pressure_coefficient: csdl.Variable
+    doublet_strength: csdl.Variable
+    trefftz_induced_drag_coefficient: csdl.Variable | None = None
+    trefftz_induced_drag_newton: csdl.Variable | None = None
 
     def as_dict(self) -> dict[str, csdl.Variable]:
-        """Return outputs under the names understood by VortexAD and FD tools."""
-        return {
+        """Return the scalar outputs under VortexAD's names, for FD tools."""
+        outputs = {
             "CL": self.lift_coefficient,
             "CDi": self.induced_drag_coefficient,
             "L": self.lift_newton,
             "Di": self.induced_drag_newton,
         }
+        if self.trefftz_induced_drag_coefficient is not None:
+            outputs["CDi_Trefftz"] = self.trefftz_induced_drag_coefficient
+            outputs["Di_Trefftz"] = self.trefftz_induced_drag_newton
+        return outputs
 
 
 def _load_vortexad() -> tuple[Any, Any, Any]:
@@ -248,9 +274,12 @@ def build_panel_aerodynamics(
     Returns
     -------
     PanelAerodynamicOutputs
-        Lift and induced-drag coefficients and forces. The same four variables
-        are registered in ``result.aerodynamic_outputs`` under ``CL``, ``CDi``,
-        ``L``, and ``Di``, so :func:`select_fd_objective` can address them.
+        Lift and induced-drag coefficients and forces, the per-panel pressure
+        coefficients and doublet strengths, and, when requested, the
+        Trefftz-plane induced drag. The scalar outputs are registered in
+        ``result.aerodynamic_outputs`` under ``CL``, ``CDi``, ``L``, ``Di``,
+        and ``CDi_Trefftz``/``Di_Trefftz``, so :func:`select_fd_objective` can
+        address them.
 
     Notes
     -----
@@ -296,6 +325,7 @@ def build_panel_aerodynamics(
             "rho": condition.density_kg_m3,
             "sos": condition.speed_of_sound_m_s,
             "ref_chord": condition.reference_chord_m,
+            "drag_type": condition.drag_type,
         },
         skip_geometry=True,
     )
@@ -304,7 +334,9 @@ def build_panel_aerodynamics(
         cell_adjacency_data=adjacency,
         TE_properties=trailing_edges,
     )
-    output_names = ("CL", "CDi", "L", "Di")
+    output_names = ("CL", "CDi", "L", "Di", "Cp", "mu")
+    if condition.drag_type == "Trefftz":
+        output_names += ("CDi_Trefftz", "Di_Trefftz")
     panel_method.declare_outputs(list(output_names))
     raw_outputs = dict(panel_method.evaluate())
     missing = [name for name in output_names if name not in raw_outputs]
@@ -320,6 +352,10 @@ def build_panel_aerodynamics(
         induced_drag_coefficient=raw_outputs["CDi"],
         lift_newton=raw_outputs["L"],
         induced_drag_newton=raw_outputs["Di"],
+        pressure_coefficient=raw_outputs["Cp"],
+        doublet_strength=raw_outputs["mu"],
+        trefftz_induced_drag_coefficient=raw_outputs.get("CDi_Trefftz"),
+        trefftz_induced_drag_newton=raw_outputs.get("Di_Trefftz"),
     )
     duplicate = sorted(set(outputs.as_dict()) & set(result.aerodynamic_outputs))
     if duplicate:
@@ -332,6 +368,7 @@ def build_panel_aerodynamics(
 
 
 __all__ = [
+    "DRAG_TYPES",
     "PanelAerodynamicOutputs",
     "PanelCondition",
     "VORTEXAD_REPOSITORY",

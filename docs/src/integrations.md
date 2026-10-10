@@ -29,12 +29,12 @@ multi-rank MPI job runs in the standard suite.
 GAMMA provides `mm.build_panel_aerodynamics`, a differentiable adapter from the
 public `mm.run` result to VortexAD's steady panel method. It targets official
 VortexAD `main` at commit
-`8c5bc86fda5fa1e359fecde24c6c6e8527c773b5`. Install that optional dependency
+`c8027dfa137445ce7a1ba34bd3644d099111f770`. Install that optional dependency
 explicitly after validating it against your environment:
 
 ```bash
 python -m pip install --no-deps \
-  "VortexAD @ git+https://github.com/LSDOlab/VortexAD.git@8c5bc86fda5fa1e359fecde24c6c6e8527c773b5"
+  "VortexAD @ git+https://github.com/LSDOlab/VortexAD.git@c8027dfa137445ce7a1ba34bd3644d099111f770"
 ```
 
 VortexAD is not a base dependency and is not installed by the standard test or
