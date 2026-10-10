@@ -368,6 +368,34 @@ def test_add_component_interpolates_and_reaches_the_target_exactly():
         recorder.stop()
 
 
+def test_connect_accepts_an_optional_validated_seam_tolerance():
+    """A per-connection seam tolerance overrides the pipeline default only when set."""
+    recorder = csdl.Recorder(inline=True)
+    recorder.start()
+    try:
+        geometry = mm.GeometryModel()
+        for name in ("wing", "fuselage", "stab"):
+            geometry.add_component(
+                name=name, search_name=name, deformed_coefficients=np.zeros((4, 3)),
+            )
+        geometry.connect(name="root", driving_component="wing", query_component="fuselage")
+        geometry.connect(
+            name="tail", driving_component="stab", query_component="fuselage",
+            intersection_tolerance=4e-3,
+        )
+        records = {record.name: record for record in geometry._intersection_records}
+        assert records["root"].intersection_tolerance is None
+        assert records["tail"].intersection_tolerance == 4e-3
+        for bad in (0.0, -1e-3, float("nan"), float("inf")):
+            with pytest.raises(ValueError, match="intersection_tolerance"):
+                geometry.connect(
+                    name="bad", driving_component="wing", query_component="stab",
+                    intersection_tolerance=bad,
+                )
+    finally:
+        recorder.stop()
+
+
 def test_compiled_records_are_not_public():
     """The facade promised to hide compiled records and their callbacks."""
     geometry = mm.GeometryModel()

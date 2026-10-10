@@ -48,6 +48,13 @@ WING_LEADING_EDGE_HOLD_M = 0.08
 WING_LEADING_EDGE_FADE_M = 0.16
 NO_FREE_VERTICES = {"x": (0.0, 0.0, "extent")}
 COEFFICIENT_ORDER = ("strut", "wing", "fuselage", "stab")
+# The input mesh's wing-root trailing edge sits up to 3.4 mm off the fuselage
+# CAD, beyond the default 2 mm seam tolerance. 4 mm selects exactly the mesh's
+# 158 wing-fuselage junction vertices; 5 mm would start to admit vertices that
+# are not on the junction. The stab-fuselage seam keeps the default: 4 mm would
+# add two vertices beside a stab-root cell that is already inverted in the
+# input mesh, and moving them onto the seam inverts three more cells.
+WING_ROOT_SEAM_TOLERANCE_M = 4e-3
 
 
 def _targets_from_design_example():
@@ -138,15 +145,16 @@ def main(*, output_directory=None, visualize=None, targets=None):
                     ) if name == "wing" else None
                 ),
             )
-        for name, driving, query in (
-            ("strut_wing", "strut", "wing"),
-            ("strut_fuselage", "strut", "fuselage"),
-            ("wing_fuselage", "wing", "fuselage"),
-            ("stab_fuselage", "stab", "fuselage"),
+        for name, driving, query, tolerance in (
+            ("strut_wing", "strut", "wing", None),
+            ("strut_fuselage", "strut", "fuselage", None),
+            ("wing_fuselage", "wing", "fuselage", WING_ROOT_SEAM_TOLERANCE_M),
+            ("stab_fuselage", "stab", "fuselage", None),
         ):
             geometry.connect(
                 name=name, driving_component=driving,
                 query_component=query, search_direction="u",
+                intersection_tolerance=tolerance,
             )
 
         motion = mm.MeshMotion(

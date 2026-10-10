@@ -35,6 +35,10 @@ def test_parameterized_geometry_moves_the_surface_and_recomputes_seams(tmp_path)
     assert set(report["final_seams"]) == {
         "strut_wing", "strut_fuselage", "wing_fuselage", "stab_fuselage"
     }
+    # The 4 mm wing-root tolerance selects every wing-fuselage junction vertex,
+    # including the trailing edge that the 2 mm default missed.
+    assert report["final_seams"]["wing_fuselage"]["vertices"] == 158
+    assert report["final_seams"]["stab_fuselage"]["vertices"] == 132
     for seam in report["final_seams"].values():
         assert seam["vertices"] > 0
         assert seam["max_abs_host_sdf_m"] < 1e-8

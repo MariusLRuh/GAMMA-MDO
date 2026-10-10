@@ -646,6 +646,7 @@ class GeometryModel:
         query_component: str,
         search_direction: str = "u",
         solver_name: str | None = None,
+        intersection_tolerance: float | None = None,
     ) -> None:
         """Declare one independent closed intersection curve.
 
@@ -662,11 +663,18 @@ class GeometryModel:
             Parametric coordinate varied by the solve.
         solver_name
             Optional diagnostic name; defaults to ``name``.
+        intersection_tolerance
+            Optional maximum closest-surface distance, in model units, for a
+            baseline mesh vertex to count as on this intersection: it must lie
+            within this distance of both components. ``None`` uses the
+            pipeline default (2e-3). Raise it only when the surface mesh
+            deviates from the CAD near this junction by more than the default.
 
         Raises
         ------
         ValueError
-            If the name collides or either component is unknown.
+            If the name collides, either component is unknown, or the
+            tolerance is not a positive finite number.
         """
         if name in {record.name for record in self._intersections}:
             raise ValueError(f"Intersection {name!r} is already defined.")
@@ -685,6 +693,7 @@ class GeometryModel:
                 query_component=query_component,
                 bisection_search_direction=search_direction,
                 solver_name=solver_name,
+                intersection_tolerance=intersection_tolerance,
             )
         )
 
