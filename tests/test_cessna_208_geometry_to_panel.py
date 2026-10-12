@@ -1,13 +1,16 @@
 """C208 geometry-to-panel example: stages 1-2 end to end, stage-3 settings offline."""
 
 import json
+import sys
 from types import SimpleNamespace
 
+import csdl_alpha as csdl
 import numpy as np
 import pytest
 
 from examples import cessna_208_geometry_to_panel as example
 from tests.test_cessna_208_geometry_parameterization import BASELINE
+from tests.test_panel_aerodynamics import _fake_vortexad_module, _mesh_result
 
 
 @pytest.mark.integration
@@ -145,3 +148,50 @@ def test_panel_condition_uses_the_targets_and_wake_settings(monkeypatch):
     assert set(example.TRAILING_EDGE_EDGES_TO_IGNORE) <= ignored
     assert {(0, 1), (2, 3), (2, 4)} <= ignored
     assert (6, 7) not in ignored
+
+
+def test_panel_stage_runs_through_the_jax_simulator_with_a_fake_solver(
+    monkeypatch, tmp_path
+):
+    """Smoke-test the example's panel stage on one quad with a stand-in solver."""
+    monkeypatch.setitem(sys.modules, "VortexAD", _fake_vortexad_module())
+    targets = {"wing_area_m2": 25.0, "wing_aspect_ratio": 9.0}
+    recorder = csdl.Recorder(inline=True)
+    recorder.start()
+    try:
+        # The example's targets are design variables; the simulator needs one.
+        height = csdl.Variable(name="height", value=np.array([0.1]))
+        height.set_as_design_variable()
+        base = np.array([[0.0, -1.0, 0.0], [1.0, -1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]])
+        lift = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]])
+        result = _mesh_result(base + csdl.expand(height, (4, 3)) * lift)
+        result.surface_vertex_classification = SimpleNamespace(
+            component_vertex_ids={"strut": np.array([], dtype=np.int64)},
+            intersection_vertex_ids={
+                name: np.array([0] if name == "wing_fuselage" else [], dtype=np.int64)
+                for name in ("strut_wing", "strut_fuselage", "wing_fuselage", "stab_fuselage")
+            },
+        )
+        aerodynamics = example._build_panel_stage(recorder, result, targets)
+        assert recorder.inline is False
+    finally:
+        recorder.stop()
+    entry, doublet, pressure = example._evaluate_panel_stage(
+        recorder, result, aerodynamics, targets, tmp_path
+    )
+    # The fake solver: CL = 0.4 + 0.2 sum(z), CDi = 0.015 + 0.01 sum(x^2), Trefftz 0.9 CDi.
+    lift_coefficient = 0.4 + 0.2 * 0.2
+    induced_drag = 0.015 + 0.01 * (np.sum(base**2) + 2 * 0.1**2)
+    assert np.isclose(entry["CL"], lift_coefficient)
+    assert np.isclose(entry["CDi_pressure"], induced_drag)
+    assert np.isclose(entry["CDi_Trefftz"], 0.9 * induced_drag)
+    assert np.isclose(
+        entry["span_efficiency_Trefftz"],
+        lift_coefficient**2 / (np.pi * 9.0 * 0.9 * induced_drag),
+    )
+    assert np.isclose(entry["reference_chord_m"], 25.0 / 15.0)
+    assert entry["panels"] == pressure.size == doublet.size == 1
+    assert set(result.aerodynamic_outputs) == {"CL", "CDi", "L", "Di", "CDi_Trefftz", "Di_Trefftz"}
+    with np.load(tmp_path / entry["distributions"]) as saved:
+        assert np.allclose(saved["pressure_coefficient"], pressure)
+        assert saved["faces"].tolist() == [4, 0, 1, 2, 3]

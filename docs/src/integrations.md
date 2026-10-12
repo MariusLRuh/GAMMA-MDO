@@ -48,9 +48,10 @@ edges from the undeformed curated mesh, rejects non-converged OML projections
 by default, and registers `CL`, `CDi`, `L`, and `Di` in
 `MeshMotionResult.aerodynamic_outputs`, plus `CDi_Trefftz` and `Di_Trefftz`
 with `PanelCondition(drag_type="Trefftz")`. It also returns the per-panel
-pressure coefficients and doublet strengths. The
-[Cessna 208 CAD-to-panel example](cessna_208_geometry_to_panel.md) runs a real
-solve on a 30,627-panel mesh; that run was checked locally, not in CI. The caller owns the active recorder;
+pressure coefficients and doublet strengths. A real
+solve on the 30,627-panel mesh of the
+[Cessna 208 CAD-to-panel example](cessna_208_geometry_to_panel.md) was run
+locally, with the example's pre-consolidation version; it is not part of CI. The caller owns the active recorder;
 the adapter never starts or stops it.
 
 ### Mesh generation — separate

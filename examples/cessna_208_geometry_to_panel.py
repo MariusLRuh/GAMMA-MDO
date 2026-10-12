@@ -1,6 +1,6 @@
 """Cessna 208: CAD parameterization, surface-mesh deformation, panel aerodynamics.
 
-The example runs three stages in one differentiable CSDL graph:
+The example assembles three stages in one CSDL graph:
 
 1. Parameterize the C208 CAD with lsdo_geo. Five design targets (wing area and
    aspect ratio, stabilizer area and aspect ratio, stabilizer pitch) are met
@@ -10,8 +10,12 @@ The example runs three stages in one differentiable CSDL graph:
    are recomputed exactly and checked against the deformed CAD.
 3. Optionally solve VortexAD's steady panel method on the deformed surface and
    report CL and the induced drag. This stage is dense over all 30,627 panels
-   and needs about 48 GB of memory and 15-20 minutes, so it is off by default
+   and needs about 48 GB of memory and 15-25 minutes, so it is off by default
    (``RUN_PANEL_ANALYSIS``).
+
+The CAD-stage derivatives are checked against finite differences in the tests.
+Derivatives of the panel outputs with respect to the five targets pass through
+the whole graph but have not been checked against finite differences.
 
 Edit the settings below, then run from the repository root::
 
@@ -332,6 +336,73 @@ def _panel_condition(result, targets):
     )
 
 
+def _build_panel_stage(recorder, result, targets):
+    """Append the panel solve to the graph; JAX evaluates it, not the inline backend."""
+    recorder.inline = False
+    return mm.build_panel_aerodynamics(result, _panel_condition(result, targets))
+
+
+def _evaluate_panel_stage(recorder, result, aerodynamics, targets, output_directory):
+    """Run the panel graph with the JAX simulator and save the panel distributions.
+
+    Returns the report entry and the per-panel doublet strengths and pressure
+    coefficients.
+    """
+    started = time.perf_counter()
+    simulator = csdl.experimental.JaxSimulator(
+        recorder=recorder,
+        additional_outputs=[
+            aerodynamics.lift_coefficient, aerodynamics.induced_drag_coefficient,
+            aerodynamics.lift_newton, aerodynamics.induced_drag_newton,
+            aerodynamics.trefftz_induced_drag_coefficient,
+            aerodynamics.trefftz_induced_drag_newton,
+            aerodynamics.pressure_coefficient, aerodynamics.doublet_strength,
+        ],
+        gpu=False,
+    )
+    simulator.run()
+
+    def scalar(variable):
+        return float(np.asarray(simulator[variable]).reshape(-1)[0])
+
+    condition = _panel_condition(result, targets)
+    lift_coefficient = scalar(aerodynamics.lift_coefficient)
+    trefftz_drag_coefficient = scalar(aerodynamics.trefftz_induced_drag_coefficient)
+    aspect_ratio = float(targets["wing_aspect_ratio"])
+    doublet = np.asarray(simulator[aerodynamics.doublet_strength], dtype=float).reshape(-1)
+    pressure = np.asarray(simulator[aerodynamics.pressure_coefficient], dtype=float).reshape(-1)
+    entry = {
+        "mach": MACH,
+        "alpha_deg": ALPHA_DEG,
+        "density_kg_m3": DENSITY_KG_M3,
+        "speed_of_sound_m_s": SPEED_OF_SOUND_M_S,
+        "reference_area_m2": float(condition.reference_area_m2),
+        "reference_chord_m": float(condition.reference_chord_m),
+        "strut_wake": STRUT_WAKE,
+        "junction_wake_gap_edges": JUNCTION_WAKE_GAP_EDGES,
+        "panels": int(pressure.size),
+        "CL": lift_coefficient,
+        "CDi_pressure": scalar(aerodynamics.induced_drag_coefficient),
+        "CDi_Trefftz": trefftz_drag_coefficient,
+        "L_N": scalar(aerodynamics.lift_newton),
+        "Di_pressure_N": scalar(aerodynamics.induced_drag_newton),
+        "Di_Trefftz_N": scalar(aerodynamics.trefftz_induced_drag_newton),
+        # Span efficiency e = CL^2 / (pi AR CDi), from the Trefftz-plane drag.
+        "span_efficiency_Trefftz": lift_coefficient**2
+        / (np.pi * aspect_ratio * trefftz_drag_coefficient),
+        "solve_seconds": time.perf_counter() - started,
+        "distributions": "c208_panel_distributions.npz",
+    }
+    np.savez_compressed(
+        output_directory / "c208_panel_distributions.npz",
+        points=np.asarray(result.surface_coordinates.value, dtype=float),
+        faces=_panel_faces(result),
+        doublet_strength=doublet,
+        pressure_coefficient=pressure,
+    )
+    return entry, doublet, pressure
+
+
 def main(*, output_directory=None, targets=None, run_panel_analysis=None, visualize=None):
     """Run the three stages and write ``c208_report.json``.
 
@@ -418,11 +489,8 @@ def main(*, output_directory=None, targets=None, run_panel_analysis=None, visual
         seams = _deformed_seam_summary(result, graph)
         _check_final_seams(seams, failure_file=output_directory / "c208_mesh.invalid.json")
 
-        # 3. Append the panel solve; JAX evaluates it, not the inline backend.
-        aerodynamics = None
-        if run_panel_analysis:
-            recorder.inline = False
-            aerodynamics = mm.build_panel_aerodynamics(result, _panel_condition(result, targets))
+        # 3. Optionally append the panel solve to the same graph.
+        aerodynamics = _build_panel_stage(recorder, result, targets) if run_panel_analysis else None
     finally:
         recorder.stop()
 
@@ -468,58 +536,10 @@ def main(*, output_directory=None, targets=None, run_panel_analysis=None, visual
         "aerodynamics": None,
     }
 
+    doublet = pressure = None
     if aerodynamics is not None:
-        started = time.perf_counter()
-        simulator = csdl.experimental.JaxSimulator(
-            recorder=recorder,
-            additional_outputs=[
-                aerodynamics.lift_coefficient, aerodynamics.induced_drag_coefficient,
-                aerodynamics.lift_newton, aerodynamics.induced_drag_newton,
-                aerodynamics.trefftz_induced_drag_coefficient,
-                aerodynamics.trefftz_induced_drag_newton,
-                aerodynamics.pressure_coefficient, aerodynamics.doublet_strength,
-            ],
-            gpu=False,
-        )
-        simulator.run()
-
-        def scalar(variable):
-            return float(np.asarray(simulator[variable]).reshape(-1)[0])
-
-        condition = _panel_condition(result, targets)
-        lift_coefficient = scalar(aerodynamics.lift_coefficient)
-        trefftz_drag_coefficient = scalar(aerodynamics.trefftz_induced_drag_coefficient)
-        aspect_ratio = float(targets["wing_aspect_ratio"])
-        doublet = np.asarray(simulator[aerodynamics.doublet_strength], dtype=float).reshape(-1)
-        pressure = np.asarray(simulator[aerodynamics.pressure_coefficient], dtype=float).reshape(-1)
-        report["aerodynamics"] = {
-            "mach": MACH,
-            "alpha_deg": ALPHA_DEG,
-            "density_kg_m3": DENSITY_KG_M3,
-            "speed_of_sound_m_s": SPEED_OF_SOUND_M_S,
-            "reference_area_m2": float(condition.reference_area_m2),
-            "reference_chord_m": float(condition.reference_chord_m),
-            "strut_wake": STRUT_WAKE,
-            "junction_wake_gap_edges": JUNCTION_WAKE_GAP_EDGES,
-            "panels": int(pressure.size),
-            "CL": lift_coefficient,
-            "CDi_pressure": scalar(aerodynamics.induced_drag_coefficient),
-            "CDi_Trefftz": trefftz_drag_coefficient,
-            "L_N": scalar(aerodynamics.lift_newton),
-            "Di_pressure_N": scalar(aerodynamics.induced_drag_newton),
-            "Di_Trefftz_N": scalar(aerodynamics.trefftz_induced_drag_newton),
-            # Span efficiency e = CL^2 / (pi AR CDi), from the Trefftz-plane drag.
-            "span_efficiency_Trefftz": lift_coefficient**2
-            / (np.pi * aspect_ratio * trefftz_drag_coefficient),
-            "solve_seconds": time.perf_counter() - started,
-            "distributions": "c208_panel_distributions.npz",
-        }
-        np.savez_compressed(
-            output_directory / "c208_panel_distributions.npz",
-            points=np.asarray(result.surface_coordinates.value, dtype=float),
-            faces=_panel_faces(result),
-            doublet_strength=doublet,
-            pressure_coefficient=pressure,
+        report["aerodynamics"], doublet, pressure = _evaluate_panel_stage(
+            recorder, result, aerodynamics, targets, output_directory
         )
 
     (output_directory / "c208_report.json").write_text(json.dumps(report, indent=2) + "\n")

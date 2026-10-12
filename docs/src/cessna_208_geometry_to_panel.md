@@ -2,7 +2,9 @@
 
 `examples/cessna_208_geometry_to_panel.py` takes the Cessna 208 from five
 planform design targets to a deformed CFD surface mesh and, optionally, a
-panel-method solution, all in one differentiable CSDL graph:
+panel-method solution. The three stages are assembled in one CSDL graph;
+[Validation status](#validation-status) lists which results and derivatives
+have been checked:
 
 1. **Parameterize the CAD** with [lsdo_geo](https://github.com/LSDOlab/lsdo_geo):
    wing area and aspect ratio, stabilizer area and aspect ratio, and
@@ -99,8 +101,8 @@ inside its host. The solved coefficients are saved to
 ## Step 2: deform the surface mesh
 
 The solved coefficient arrays enter `GeometryModel.add_component` directly, as
-CSDL variables, so the mesh stays differentiable with respect to the five
-targets. The four intersections are declared with `GeometryModel.connect`:
+CSDL variables, so the deformed mesh stays connected to the five targets in
+the graph. The four intersections are declared with `GeometryModel.connect`:
 strut–wing, strut–fuselage, wing–fuselage and stab–fuselage.
 
 ```python
@@ -218,6 +220,12 @@ remaining wakes leave 510 trailing-edge edges on the wing and stabilizer.
 | Strut wake off, no junction gap | 0.474 | 0.0157 | 0.0188 |
 | **Strut wake off, gap of one edge (default)** | **0.447** | **0.0129** | **0.0150** |
 
+These results come from the pre-consolidation version of this example
+(separate geometry, mesh and panel scripts) with the same settings. The
+consolidated script reproduces that run's baseline mesh bitwise, excludes the
+same trailing-edge edges and uses the same flight condition, so its panel
+solve receives identical inputs; its own VortexAD run is still outstanding.
+
 With the defaults, lift is 41.3 kN and the two induced-drag estimates agree
 within about 17%. They imply a span efficiency `CL² / (π AR CDi)` of 0.44–0.52,
 lower than expected for this wing. Some fuselage pressure scatter remains next
@@ -241,16 +249,34 @@ A failed seam check writes `c208_mesh.invalid.json` and raises instead of
 returning a result.
 
 `main()` returns the solved geometry graph, the `MeshMotionResult`, the panel
-outputs (`None` without stage 3) and the report, so the example can serve as
-the starting point for an optimization: the five targets are registered as
-design variables on the `GeometryModel`.
+outputs (`None` without stage 3) and the report. The five targets are
+registered as design variables on the `GeometryModel`, so the graph can be the
+starting point for an optimization, but the derivatives through the complete
+chain are not yet validated (see below).
 
-## Tests
+## Validation status
 
-`tests/test_cessna_208_geometry_parameterization.py` checks the CAD stage: the
-baseline is reproduced, targets and attachments are met at a changed design,
-and reverse-mode derivatives through the inner solve match finite
-differences. `tests/test_cessna_208_geometry_to_panel.py` runs stages 1 and 2
-end to end at a changed design and checks the mesh quality and every seam, and
-it checks the panel-stage settings without VortexAD. No real panel solve runs
-in continuous integration.
+Checked:
+
+- **CAD stage** (`tests/test_cessna_208_geometry_parameterization.py`): the
+  baseline is reproduced, targets and attachments are met at a changed
+  design, and reverse-mode derivatives through the lsdo_geo inner solve match
+  finite differences.
+- **Mesh stage** (`tests/test_cessna_208_geometry_to_panel.py`): stages 1 and
+  2 run end to end at a changed design, with no folds, no new inverted cells,
+  no projection failures, and every seam on the deformed CAD.
+- **Panel stage wiring** (same file): the example's panel stage is built and
+  run through the JAX simulator with a stand-in solver, and its trailing-edge
+  exclusions and panel settings are checked. GAMMA's VortexAD adapter
+  reproduces a native VortexAD run exactly on a small test wing.
+
+Outstanding:
+
+- **A VortexAD run of the consolidated script.** The baseline results above
+  come from the pre-consolidation run with identical inputs.
+- **Derivatives through the complete chain.** The derivatives of CL and the
+  induced drag with respect to the five targets pass through the CAD, mesh
+  and panel stages, but have not been checked against finite differences.
+  Do not rely on them for optimization until they are.
+
+No real panel solve runs in continuous integration.

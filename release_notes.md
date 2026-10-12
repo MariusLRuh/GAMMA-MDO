@@ -5,9 +5,9 @@
 - Cessna 208 CAD-to-panel example (`examples/cessna_208_geometry_to_panel.py`):
   lsdo_geo parameterization of five planform targets with the struts kept
   attached, surface-mesh deformation with all four seams recomputed, and an
-  optional VortexAD panel solve, in one differentiable graph. Documented step
+  optional VortexAD panel solve, assembled in one CSDL graph. Documented step
   by step in the new "Cessna 208: from CAD parameters to panel aerodynamics"
-  page.
+  page, including which results and derivatives are not yet validated.
 - `GeometryModel.connect(..., intersection_tolerance=...)` sets the seam
   selection tolerance per intersection; the default is unchanged.
 - The VortexAD adapter accepts `PanelCondition(drag_type="Trefftz")` and
