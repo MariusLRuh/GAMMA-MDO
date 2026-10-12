@@ -1,3 +1,22 @@
+# GAMMA (unreleased)
+
+## New features
+
+- Cessna 208 CAD-to-panel example (`examples/cessna_208_geometry_to_panel.py`):
+  lsdo_geo parameterization of five planform targets with the struts kept
+  attached, surface-mesh deformation with all four seams recomputed, and an
+  optional VortexAD panel solve, assembled in one CSDL graph. Documented step
+  by step in the new "Cessna 208: from CAD parameters to panel aerodynamics"
+  page, including which results and derivatives are not yet validated.
+- `GeometryModel.connect(..., intersection_tolerance=...)` sets the seam
+  selection tolerance per intersection; the default is unchanged.
+- The VortexAD adapter accepts `PanelCondition(drag_type="Trefftz")` and
+  returns the per-panel pressure coefficients and doublet strengths.
+
+## Backwards-incompatible changes
+
+- The optional VortexAD pin moves to `c8027dfa137445ce7a1ba34bd3644d099111f770`.
+
 # GAMMA 0.3.0a1 (alpha)
 
 GAMMA is research software under active development, released as an alpha

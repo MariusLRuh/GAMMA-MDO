@@ -716,6 +716,13 @@ def _setup_geometry_and_mesh(
                     spec.query_component,
                     spec.bisection_search_direction,
                 )
+                # Only a per-connection override enters the signature, so
+                # existing setup caches stay valid.
+                + (
+                    ()
+                    if spec.intersection_tolerance is None
+                    else (float(spec.intersection_tolerance),)
+                )
                 for spec in intersection_specs
             ),
             float(intersection_tolerance),
@@ -790,7 +797,11 @@ def _setup_geometry_and_mesh(
                     ],
                     driving_component=components[spec.driving_component],
                     mesh=mesh,
-                    intersection_tolerance=intersection_tolerance,
+                    intersection_tolerance=(
+                        intersection_tolerance
+                        if spec.intersection_tolerance is None
+                        else spec.intersection_tolerance
+                    ),
                     projection_cache=projection_cache,
                     projection_options=setup_projection_options,
                 )

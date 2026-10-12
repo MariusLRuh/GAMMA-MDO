@@ -207,13 +207,17 @@ the evidence of solve quality; they are diagnostics, not guarantees.
 VortexAD steady panel method to the caller's active CSDL graph. It consumes
 only the public `MeshMotionResult` surface and returns
 `PanelAerodynamicOutputs` with `lift_coefficient`,
-`induced_drag_coefficient`, `lift_newton`, and `induced_drag_newton`. The same
-variables are registered in `result.aerodynamic_outputs` as `CL`, `CDi`, `L`,
-and `Di`, so the existing FD selector can address them.
+`induced_drag_coefficient`, `lift_newton`, `induced_drag_newton`, and the
+per-panel `pressure_coefficient` and `doublet_strength`. With
+`drag_type="Trefftz"` it also returns the Trefftz-plane
+`trefftz_induced_drag_coefficient` and `trefftz_induced_drag_newton`. The
+scalar variables are registered in `result.aerodynamic_outputs` as `CL`,
+`CDi`, `L`, `Di`, and `CDi_Trefftz`/`Di_Trefftz`, so the existing FD selector
+can address them.
 
 `PanelCondition(reference_area_m2, reference_chord_m, ...)` holds the
 freestream, reference geometry, trailing-edge threshold, excluded root edges,
-and projection-convergence policy. Connectivity and trailing edges are derived
+projection-convergence policy, and induced-drag method. Connectivity and trailing edges are derived
 from the undeformed triangle/quad mesh; the differentiable final coordinates
 are passed to the solve. VortexAD is imported only when the builder is called.
 

@@ -11,6 +11,10 @@
 #   csdl_alpha
 #   lsdo_function_spaces
 #   jax
+#
+# Prerequisite of the C208 geometry-to-panel example (install with --no-deps;
+# it imports vedo):
+#   lsdo_geo @ git+https://github.com/LSDOlab/lsdo_geo.git@3e9cb8872bfb1a4116757de3f436d6ac3f5476c9
 #   gmsh
 #
 # Additional prerequisites for the DAFoam coupling are supplied by the
@@ -25,8 +29,8 @@
 #   pyvista
 #
 # Optional differentiable panel-method integration (official main pinned on
-# 2026-09-25; install explicitly with --no-deps after validating its stack):
-#   VortexAD @ git+https://github.com/LSDOlab/VortexAD.git@8c5bc86fda5fa1e359fecde24c6c6e8527c773b5
+# 2026-10-10; install explicitly with --no-deps after validating its stack):
+#   VortexAD @ git+https://github.com/LSDOlab/VortexAD.git@c8027dfa137445ce7a1ba34bd3644d099111f770
 #
 # Safe TSCC install (does not resolve or install dependencies):
 #   python -m pip install --no-deps --no-build-isolation -e .

@@ -29,12 +29,12 @@ multi-rank MPI job runs in the standard suite.
 GAMMA provides `mm.build_panel_aerodynamics`, a differentiable adapter from the
 public `mm.run` result to VortexAD's steady panel method. It targets official
 VortexAD `main` at commit
-`8c5bc86fda5fa1e359fecde24c6c6e8527c773b5`. Install that optional dependency
+`c8027dfa137445ce7a1ba34bd3644d099111f770`. Install that optional dependency
 explicitly after validating it against your environment:
 
 ```bash
 python -m pip install --no-deps \
-  "VortexAD @ git+https://github.com/LSDOlab/VortexAD.git@8c5bc86fda5fa1e359fecde24c6c6e8527c773b5"
+  "VortexAD @ git+https://github.com/LSDOlab/VortexAD.git@c8027dfa137445ce7a1ba34bd3644d099111f770"
 ```
 
 VortexAD is not a base dependency and is not installed by the standard test or
@@ -46,7 +46,12 @@ package is absent. No real panel solve is claimed as a standard-CI result.
 The adapter accepts triangle/quad connectivity, derives adjacency and trailing
 edges from the undeformed curated mesh, rejects non-converged OML projections
 by default, and registers `CL`, `CDi`, `L`, and `Di` in
-`MeshMotionResult.aerodynamic_outputs`. The caller owns the active recorder;
+`MeshMotionResult.aerodynamic_outputs`, plus `CDi_Trefftz` and `Di_Trefftz`
+with `PanelCondition(drag_type="Trefftz")`. It also returns the per-panel
+pressure coefficients and doublet strengths. A real
+solve on the 30,627-panel mesh of the
+[Cessna 208 CAD-to-panel example](cessna_208_geometry_to_panel.md) was run
+locally, with the example's pre-consolidation version; it is not part of CI. The caller owns the active recorder;
 the adapter never starts or stops it.
 
 ### Mesh generation — separate

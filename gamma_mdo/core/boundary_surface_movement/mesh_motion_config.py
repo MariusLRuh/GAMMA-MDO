@@ -659,11 +659,16 @@ class _IntersectionRecord:
         Parametric coordinate varied by the bracketed solve.
     solver_name
         Optional diagnostic name; defaults to ``name``.
+    intersection_tolerance
+        Optional maximum closest-surface distance, in model units, for a
+        baseline mesh vertex to count as on this intersection. ``None`` uses
+        the pipeline default.
 
     Raises
     ------
     ValueError
-        If the name is invalid or both component names are equal.
+        If the name is invalid, both component names are equal, or the
+        tolerance is not a positive finite number.
     """
 
     name: str
@@ -671,6 +676,7 @@ class _IntersectionRecord:
     query_component: str
     bisection_search_direction: str = "u"
     solver_name: str | None = None
+    intersection_tolerance: float | None = None
 
     def __post_init__(self):
         if not self.name or not self.name.isidentifier():
@@ -683,6 +689,13 @@ class _IntersectionRecord:
             )
         if self.solver_name is None:
             object.__setattr__(self, "solver_name", self.name)
+        if self.intersection_tolerance is not None:
+            tolerance = float(self.intersection_tolerance)
+            if not np.isfinite(tolerance) or tolerance <= 0.0:
+                raise ValueError(
+                    "intersection_tolerance must be a positive finite number."
+                )
+            object.__setattr__(self, "intersection_tolerance", tolerance)
 
 @dataclass
 class MeshMotionResult:

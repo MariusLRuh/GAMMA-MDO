@@ -59,6 +59,20 @@ including `pytest`, `meshio`, and PyVista. Interactive GAMMA visualization is
 optional, but PyVista is currently imported eagerly by the pinned LFS package,
 so it remains part of this validated environment even for headless runs.
 
+## Optional example prerequisites
+
+The [Cessna 208 CAD-to-panel example](cessna_208_geometry_to_panel.md) also
+needs lsdo_geo, and VortexAD for its optional panel stage. Install both with
+`--no-deps` so they cannot replace the validated stack (`requirements-ci.txt`
+already pins `vedo`, which lsdo_geo imports):
+
+```bash
+python -m pip install --no-deps \
+  "lsdo_geo @ git+https://github.com/LSDOlab/lsdo_geo.git@3e9cb8872bfb1a4116757de3f436d6ac3f5476c9"
+python -m pip install --no-deps \
+  "VortexAD @ git+https://github.com/LSDOlab/VortexAD.git@c8027dfa137445ce7a1ba34bd3644d099111f770"
+```
+
 ## Optional solver environment
 
 DAFoam, OpenFOAM, `mpi4py`, and `petsc4py` are **not** installed by the steps

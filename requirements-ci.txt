@@ -22,3 +22,6 @@ csdl_alpha @ git+https://github.com/LSDOlab/CSDL_alpha.git@73a9efd1033016a835779
 
 # lsdo_function_spaces is installed separately with --no-deps in CI so its
 # broad dependency ranges cannot replace the validated versions above.
+
+# Imported by lsdo_geo, which is likewise installed separately with --no-deps.
+vedo==2025.5.4

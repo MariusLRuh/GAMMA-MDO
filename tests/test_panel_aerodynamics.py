@@ -90,7 +90,12 @@ def _fake_vortexad_module():
                 "CDi": induced_drag_coefficient,
                 "L": 1000.0 * lift_coefficient,
                 "Di": 1000.0 * induced_drag_coefficient,
+                "Cp": csdl.reshape(1.0 - self.mesh[0, 2], (1, 1)),
+                "mu": csdl.reshape(self.mesh[1, 2], (1, 1)),
             }
+            if self.settings["drag_type"] == "Trefftz":
+                available["CDi_Trefftz"] = 0.9 * induced_drag_coefficient
+                available["Di_Trefftz"] = 900.0 * induced_drag_coefficient
             return {name: available[name] for name in self.outputs}
 
     module.PanelMethod = FakePanelMethod
@@ -214,6 +219,42 @@ def test_registered_panel_output_is_selectable_for_fd(monkeypatch):
     finally:
         recorder.stop()
     assert selected is outputs.lift_coefficient
+
+
+def test_trefftz_drag_and_panel_distributions_are_returned(monkeypatch):
+    """Request Trefftz-plane drag and return the per-panel Cp and doublets."""
+    monkeypatch.setitem(sys.modules, "VortexAD", _fake_vortexad_module())
+    recorder = csdl.Recorder(inline=True)
+    recorder.start()
+    try:
+        result = _mesh_result(csdl.Variable(value=np.zeros((4, 3))))
+        pressure_only = mm.build_panel_aerodynamics(
+            result,
+            mm.PanelCondition(reference_area_m2=10.0, reference_chord_m=2.0),
+        )
+        trefftz_result = _mesh_result(csdl.Variable(value=np.zeros((4, 3))))
+        trefftz = mm.build_panel_aerodynamics(
+            trefftz_result,
+            mm.PanelCondition(
+                reference_area_m2=10.0, reference_chord_m=2.0, drag_type="Trefftz"
+            ),
+        )
+    finally:
+        recorder.stop()
+    assert pressure_only.trefftz_induced_drag_coefficient is None
+    assert set(result.aerodynamic_outputs) == {"CL", "CDi", "L", "Di"}
+    assert set(trefftz_result.aerodynamic_outputs) == {
+        "CL", "CDi", "L", "Di", "CDi_Trefftz", "Di_Trefftz"
+    }
+    assert np.allclose(trefftz.trefftz_induced_drag_coefficient.value, 0.9 * 0.015)
+    assert trefftz.pressure_coefficient.shape == (1, 1)
+    assert trefftz.doublet_strength.shape == (1, 1)
+
+
+def test_unknown_drag_type_is_rejected():
+    """Only VortexAD's pressure and Trefftz induced-drag methods are accepted."""
+    with pytest.raises(ValueError, match="drag_type"):
+        mm.PanelCondition(reference_area_m2=10.0, reference_chord_m=2.0, drag_type="wake")
 
 
 def test_optimization_example_keeps_the_five_stage_public_workflow():

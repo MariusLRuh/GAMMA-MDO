@@ -97,6 +97,9 @@ result.print_summary()
   environment.
 - **[E175 example](src/examples.md)** — the five-stage workflow, based on the
   tracked `examples/e175_surface_deformation.py`.
+- **[Cessna 208: CAD to panel aerodynamics](src/cessna_208_geometry_to_panel.md)**
+  — lsdo_geo CAD parameterization, surface-mesh deformation, and a VortexAD
+  panel solve in one graph.
 - **[External parameterization](src/external_parameterization.md)** — the
   generic contract: bring your own differentiable coefficients.
 - **[API reference](src/api.md)** — the public `gamma_mdo.mesh_motion` surface.
@@ -110,6 +113,7 @@ result.print_summary()
 
 src/getting_started
 src/examples
+src/cessna_208_geometry_to_panel
 src/external_parameterization
 src/api
 src/background
